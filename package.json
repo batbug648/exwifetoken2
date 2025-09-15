@@ -1,0 +1,29 @@
+{
+  "name": "exwifetoken2",
+  "version": "1.0.0",
+  "description": "EXWIFE token + presale (Sepolia)",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
+    "finalize:sepolia": "npx hardhat run scripts/finalize-airdrop.js --network sepolia",
+    "console:sepolia": "npx hardhat console --network sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@types/node": "^24.3.0",
+    "dotenv": "^16.6.1",
+    "hardhat": "^2.26.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "keywords": [],
+  "author": ""
+}

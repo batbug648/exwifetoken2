@@ -1,0 +1,9 @@
+{
+  "network": "sepolia",
+  "token": "0x56b93E10aF78806ACF23Ff2CeD509F6a01aD615E",
+  "presale": "0xbc37B0CC79a807590f2b68742Fa7333708C9D292",
+  "priceWeiPerToken": "1000000000000",
+  "minBuyWei": "10000000000000000",
+  "openingTime": 1755458265,
+  "closingTime": 1756063065
+}
