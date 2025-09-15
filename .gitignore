@@ -17,3 +17,6 @@ out/
 
 # Misc
 *.log
+
+artifacts/
+cache/
