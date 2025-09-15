@@ -1,0 +1,884 @@
+W<!doctype html>
+<html lang="en">
+<head>
+<!-- FINGERPRINT: exwife v10 -->
+<title>EXWIFE • v10</title>
+
+<link rel="icon" href="data:,">
+
+ <!-- === EXWIFE: hardwired env (temporary) === -->
+<script>
+  window.EXWIFE_ENV = {
+    presale: "0x739Cd2a31eFd1A7813b2B54D01449620cC2A523c",
+    token:   "0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07",
+    symbol:  "EXWIFE",
+    goalEth: 1200
+  };
+  // Aliases for older code paths:
+  window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+  window.TOKEN_ADDRESS   = window.EXWIFE_ENV.token;
+  window.GOAL_ETH        = window.EXWIFE_ENV.goalEth;
+</script>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- HOTFIX: inline ENV (so window.EXWIFE_ENV is always defined) -->
+<script>
+  window.EXWIFE_ENV = {
+    presale: "0x739Cd2a31eFd1A7813b2B54D01449620cC2A523c",
+    token:   "0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07",
+    symbol:  "EXWIFE",
+    goalEth: 1200
+  };
+</script>
+
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+
+
+  <title>EXWIFE — Meme Coin Presale (Aug 22)</title>
+  <link rel="canonical" href="https://exwifetoken.com/" />
+
+  <!-- Fonts + Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+
+  <!-- ==== SEO / Preview Metadata ==== -->
+  <meta name="description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://exwifetoken.com/" />
+  <meta property="og:title" content="EXWIFE — Meme Coin Presale (Aug 22)" />
+  <meta property="og:description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta property="og:image" content="https://exwifetoken.com/img/exwife-hero.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="EXWIFE — Meme Coin Presale (Aug 22)" />
+  <meta name="twitter:description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta name="twitter:image" content="https://exwifetoken.com/img/exwife-hero.png" />
+
+  <link rel="icon" href="/favicon.ico" />
+
+  <style>
+    /* Minimal fallback for .banner */
+    .banner {
+      width: 100%;
+      height: 280px;
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg
+, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        url("/img/exwife-hero.png") center/cover no-repeat;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .muted { color: var(--gray); }
+    .countdown { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
+    .cd-box { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); padding:10px 12px; border-radius:12px; }
+    .cd-box span { font-size:22px; font-weight:800; display:block; }
+    .cd-box label { font-size:12px; color: var(--gray); text-transform:uppercase; letter-spacing:0.06em; }
+/* ===== Toasts ===== */
+#toast-root {
+  position: fixed;
+  z-index: 99999;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.exwife-toast {
+  min-width: 260px;
+  max-width: 420px;
+  background: #141417;
+  border: 1px solid #26262b;
+  border-left: 5px solid #3a3a40;
+  color: #f1f1f3;
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.35);
+  pointer-events: auto;
+  animation: toast-slide-in .28s ease-out;
+}
+.exwife-toast.success { border-left-color: #22c55e; }
+.exwife-toast.error   { border-left-color: #ef4444; }
+.exwife-toast h4 { margin: 0 0 6px; font-size: 14px; }
+.exwife-toast p  { margin: 0; font-size: 13px; opacity: .9; line-height: 1.35; }
+.exwife-toast a  { color: #8ab4ff; text-decoration: underline; }
+
+.exwife-toast .row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.exwife-toast .actions {
+  display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;
+}
+.exwife-toast .btn {
+  font-size: 12px; padding:6px 10px; border:1px solid #2b2b30; border-radius:8px; background:#1a1a1d; color:#fff; cursor:pointer;
+}
+.exwife-toast .btn:hover { filter:brightness(1.1); }
+
+@keyframes toast-slide-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+@keyframes toast-fade-out {
+  to { opacity: 0; transform: translateY(8px); }
+}
+#ownerPanel .btn { cursor: pointer; }
+#ownerPanel .btn:hover { filter: brightness(1.1); }
+  
+</style>
+</head>
+<body>
+
+  <!-- ===== HERO ===== -->
+  <div class="container">
+    <header class="mb-8" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div class="exwife-pill">EXWIFE • Presale</div>
+      <a href="#presale" class="exwife-btn">Enter Presale</a>
+    </header>
+
+    <section class="grid grid-2" id="hero">
+      <div>
+        <h1>The <span class="text-pink">EX-WIFE</span> is here.</h1>
+        <p class="text-gray mt-4" style="font-size:18px;">
+          10B supply. Aug 20 presale. Claim your slice before the divorce settles.
+        </p>
+
+        <div class="mt-6">
+          <a href="#presale" class="exwife-btn">Buy in Presale</a>
+          <a href="#how" class="exwife-btn" style="margin-left:8px;opacity:.9;">How it works</a>
+        </div>
+
+        <!-- Countdown -->
+        <div class="exwife-card mt-6">
+          <h3>Presale Countdown</h3>
+          <div id="countdown" class="countdown">
+            <div class="cd-box"><span id="cd-days">--</span><label>Days</label></div>
+            <div class="cd-box"><span id="cd-hours">--</span><label>Hours</label></div>
+            <div class="cd-box"><span id="cd-mins">--</span><label>Mins</label></div>
+            <div class="cd-box"><span id="cd-secs">--</span><label>Secs</label></div>
+          </div>
+          <div id="cd-status" class="muted" style="margin-top:8px">Loading timer…</div>
+        </div>
+      </div>
+
+      <div class="exwife-card">
+        <!-- Banner image / hero art -->
+      <img src="./img/exwife-hero.png" alt="EXWIFE" class="hero" />
+      </div>
+    </section>
+  </div>
+
+
+<!-- ===== PRESALE (polished, single source of truth) ===== -->
+<section id="presale" class="container" style="padding-top:20px; padding-bottom:60px">
+  <div class="exwife-card" style="max-width:720px;margin:0 auto;border:1px solid #222;border-radius:16px;padding:18px;background:#141417;">
+    <h2 style="margin:0 0 8px;">Presale Interaction Test (Sepolia)</h2>
+    <p style="opacity:.85;margin:0 0 12px;">Connect your wallet, then buy with a fixed 0.01 ETH or a custom amount.</p>
+
+    <!-- status pill (single source) -->
+    <div id="status" class="exwife-pill" style="margin-bottom:12px;">Not connected</div>
+
+    <!-- primary actions -->
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+      <button id="connect" class="btn btn-primary btn-lg" onclick="return EXWIFE_connectInline(event)">Connect Wallet</button>
+      <button id="buyBtn" class="btn btn-outline btn-lg" disabled>Buy 0.01 ETH</button>
+<button id="addTokenBtn"
+        class="btn btn-ghost btn-sm"
+        title="Add EXWIFE to wallet"
+        onclick="return EXWIFE_addToken(event)">
+  Add EXWIFE
+</button>
+
+    </div>
+
+    <!-- custom amount row -->
+    <div class="btn-row" style="margin-top:10px;display:flex;gap:10px;align-items:center;">
+      <input id="customEth" type="number" step="0.001" min="0.001" placeholder="Enter ETH (e.g. 0.02)"
+             style="flex:1; padding:.6rem .9rem; border-radius:12px; border:1px solid #333; background:#0f0f12; color:#f5f6f8;">
+      <button id="buyCustom" class="btn btn-outline btn-lg" disabled>Buy Custom</button>
+    </div>
+
+<!-- Raised / Goal display -->
+<div id="raisedRow" style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 8px;">
+  <div id="raisedLabel">Raised: 0.00 ETH</div>
+  <div id="goalLabel">Goal: 1200 ETH</div>
+</div>
+
+<!-- Progress bar -->
+<div id="progressOuter" style="width:100%; background:#141417; border:1px solid #232327; border-radius:12px; height:14px; overflow:hidden;">
+  <div id="progressInner" style="height:100%; width:0%; background:linear-gradient(90deg,#ff4fd8,#5c7cff); transition: width .6s ease;"></div>
+</div>
+
+<!-- Percentage text -->
+<div id="progressPct" style="text-align:right; font-size:12px; opacity:.8; margin-top:6px;">0%</div>
+
+<!-- ===== Owner Controls (collapsible) ===== -->
+<div id="ownerPanel" style="margin-top:20px; display:none;">
+  <button id="ownerToggle" class="exwife-btn" style="width:100%; margin-bottom:8px; text-align:left;">
+    ⚙️ Owner Controls <span id="ownerBadge" style="opacity:.7; font-size:12px; margin-left:6px;"></span>
+  </button>
+
+  <div id="ownerControls" style="display:none; border:1px solid #333; border-radius:12px; padding:12px;">
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px;">
+      <button id="btnPause"    class="btn btn-outline btn-sm">⏸ Pause Presale</button>
+      <button id="btnUnpause"  class="btn btn-outline btn-sm">▶️ Unpause Presale</button>
+      <button id="btnFinalize" class="btn btn-primary btn-sm" title="Finalize and sweep ETH to treasury">✅ Finalize</button>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+      <input id="airdropTo"  type="text" placeholder="Airdrop to (0x…)" 
+             style="flex:1; padding:.6rem .9rem; border-radius:10px; border:1px solid #333; background:#0f0f12; color:#f5f6f8;">
+      <input id="airdropAmt" type="number" step="0.000001" min="0" placeholder="Amount (EXWIFE)"
+             style="width:180px; padding:.6rem .9rem; border-radius:10px; border:1px solid #333; background:#0f0f12; color:#f5f6f8;">
+      <button id="btnAirdrop" class="btn btn-outline btn-sm">🎁 Airdrop</button>
+    </div>
+
+    <div style="margin-top:6px; font-size:12px; opacity:.7;">
+      Visible only to owner wallet. Amount is in EXWIFE units; script handles 18 decimals.
+    </div>
+  </div>
+</div>
+
+<!-- Toast container (single) -->
+<div id="toast-root" aria-live="polite" aria-atomic="true" style="position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:9999;"></div>
+
+<!-- ===== SCRIPTS (order matters) ===== -->
+
+<!-- 1) ethers (ONE include only) -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<!-- === EXWIFE ENV (addresses/config) === -->
+<script>
+  window.EXWIFE_ENV = {
+    token:  "0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07",  // Sepolia (verified)
+    presale:"0xDe43eA415C91e2789Ac15Cf802487588218A4674"   // current (closed by time)
+  };
+  window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;   // legacy path
+  window.EXWIFE_GOAL_ETH = 1200;                        // progress display goal
+</script>
+
+<!-- === Minimal presale ABI (if you don't already have it) === -->
+<script>
+  window.PRESALE_ABI_MIN = [
+    "function paused() view returns (bool)",
+    "function totalRaisedWei() view returns (uint256)",
+    "function weiRaised() view returns (uint256)",
+    "event Paused(address)",
+    "event Unpaused(address)"
+  ];
+</script>
+
+<!-- === Timeless updater: Buy enabled = !paused(); Progress = totalRaisedWei() (fallbacks) === -->
+<script type="module">
+(async () => {
+  if (typeof ethers === "undefined") { console.warn("ethers missing"); return; }
+  const provider    = new ethers.BrowserProvider(window.ethereum || null);
+  const presaleAddr = window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale;
+  const presaleAbi  = window.PRESALE_ABI || window.PRESALE_ABI_MIN;
+  if (!presaleAddr || !presaleAbi) { console.warn("presale address/abi missing"); return; }
+
+  const presale  = new ethers.Contract(presaleAddr, presaleAbi, provider);
+
+  // Adapt selectors to your DOM
+  const $buyBtn   = document.getElementById("buyBtn") || document.querySelector("[data-exwife='buy']");
+  const $status   = document.getElementById("status") || document.querySelector("#status");
+  const $raisedEl = document.getElementById("raised") || document.querySelector("[data-exwife='raised']");
+  const $progBar  = document.getElementById("progressBar") || document.querySelector("[data-exwife='progress']");
+
+  function setBuyEnabled(enabled, reason = "") {
+    if ($buyBtn) {
+      $buyBtn.disabled = !enabled;
+      $buyBtn.textContent = enabled ? "Buy EXWIFE" : (reason || "Paused");
+      $buyBtn.style.opacity = enabled ? "1" : "0.6";
+      $buyBtn.style.cursor  = enabled ? "pointer" : "not-allowed";
+    }
+    if ($status) {
+      $status.textContent = enabled ? "Ready" : (reason || "Presale paused/closed");
+      $status.className = "exwife-pill " + (enabled ? "ok" : "warn");
+    }
+  }
+
+function updateProgressUI(raisedEth) {
+  const goalEth = Number(window.GOAL_ETH ?? window.EXWIFE_ENV?.goalEth ?? 1200);
+  const pct = Math.max(0, Math.min(100, (raisedEth / goalEth) * 100));
+  if ($raisedEl) $raisedEl.textContent = `${raisedEth.toFixed(4)} ETH`;
+  if ($progBar)  $progBar.style.width = `${Math.max(2, pct)}%`; // keep a visible sliver
+}
+
+
+  async function getPausedSafe() {
+    try { return await presale.paused(); } catch { return false; }
+  }
+
+  async function getPausedSafe() {
+    try { return await presale.paused(); } catch { return false; }
+  }
+
+  async function getRaisedEthSafe() {
+    try { return Number(ethers.formatEther(await presale.totalRaisedWei())); } catch {}
+    try { return Number(ethers.formatEther(await presale.weiRaised())); } catch {}
+    try { return Number(ethers.formatEther(await provider.getBalance(presaleAddr))); } catch {}
+    return 0;
+  }
+
+  async function refreshTimeless() {
+    const paused = await getPausedSafe();
+    setBuyEnabled(!paused, paused ? "Paused" : "Closed");
+    const raisedEth = await getRaisedEthSafe();
+    updateProgressUI(raisedEth);
+  }
+
+  // Initial paint + listeners + polling
+  await refreshTimeless();
+  try { presale.on("Paused", refreshTimeless); presale.on("Unpaused", refreshTimeless); } catch {}
+  setInterval(refreshTimeless, 5000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshTimeless(); });
+})();
+</script>
+
+<!-- 2) EXWIFE ENV (addresses & config) -->
+
+<!-- 2.5) Presale ABI & address (make them global) -->
+<script>
+  window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+
+  window.PRESALE_ABI = [
+    {
+      "inputs": [],
+      "name": "finalize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "to", "type": "address" },
+        { "internalType": "uint256", "name": "amount", "type": "uint256" }
+      ],
+      "name": "airdrop",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "paused",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "finalized",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ];
+</script>
+
+<!-- 3) Presale logic + Balance + Owner Panel + UI polish -->
+<script type="module">
+/* ========== Toast + Status (polished) ========== */
+window.toastSuccess = window.toastSuccess ?? function (msg, ms=3500) {
+  console.log('✅', msg);
+  const s = document.getElementById('status');
+  if (s) { s.innerHTML = msg; s.style.background = '#16351a'; s.style.opacity = '1';
+    if (ms) { clearTimeout(s.__fadeT); s.__fadeT = setTimeout(()=>{ s.style.opacity='0.85'; }, ms); }
+  }
+};
+window.toastError = window.toastError ?? function (msg, ms=5000) {
+  console.warn('⛔', msg);
+  const s = document.getElementById('status');
+  if (s) { s.innerHTML = msg; s.style.background = '#3a1616'; s.style.opacity = '1';
+    if (ms) { clearTimeout(s.__fadeT); s.__fadeT = setTimeout(()=>{ s.style.opacity='0.85'; }, ms); }
+  }
+};
+function setStatus(text, kind){
+  const s = document.getElementById('status');
+  if (!s) return;
+  s.textContent = text || '';
+  s.style.opacity = text ? '1' : '0.85';
+  s.style.background = kind === 'ok' ? '#16351a' : kind === 'err' ? '#3a1616' : '#1b1b1f';
+}
+
+/* ========== Minimal ABIs ========== */
+window.PRESALE_ABI_MIN = [
+  "function buy() payable",
+  "function raised() view returns (uint256)",
+  "function totalRaised() view returns (uint256)",
+  "function weiRaised() view returns (uint256)",
+  "function owner() view returns (address)"      // if not present, we fall back to EXWIFE_ENV.owner
+];
+window.TOKEN_ABI_MIN = [
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+  "function balanceOf(address) view returns (uint256)"
+];
+
+/* ========== Progress UI ========== */
+function updateProgressUI(raisedEth) {
+  const goalEth = Number(window.EXWIFE_ENV?.goalEth ?? 1200);
+  const pctRaw  = goalEth > 0 ? (raisedEth / goalEth) * 100 : 0;
+  const pctClip = Math.min(100, Math.max(0, pctRaw));
+  const inner = document.getElementById('progressInner');
+  const pctEl = document.getElementById('progressPct');
+  if (inner) {
+    const visiblePct = (raisedEth > 0 && pctClip < 0.5) ? 0.5 : pctClip; // always visible tick
+    inner.style.width = visiblePct + '%';
+    inner.setAttribute('aria-valuenow', String(pctClip));
+  }
+  if (pctEl) pctEl.textContent = `${pctClip.toFixed(pctClip < 10 ? 4 : 2)}%`;
+}
+
+/* ========== Raised refresh (safe) ========== */
+async function refreshRaised() {
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum || null);
+    const addr = window.EXWIFE_ENV?.presale;
+    if (!addr) throw new Error('Missing presale address');
+    const c = new ethers.Contract(addr, window.PRESALE_ABI || window.PRESALE_ABI_MIN, provider);
+
+    let wei = null;
+    try { wei = await c.raised?.(); }       catch {}
+    if (wei == null) try { wei = await c.totalRaised?.(); } catch {}
+    if (wei == null) try { wei = await c.weiRaised?.(); }   catch {}
+    if (wei == null) wei = await provider.getBalance(addr);
+
+    const eth = Number(ethers.formatEther(wei));
+    updateProgressUI?.(eth);
+  } catch (e) {
+    console.warn('refreshRaised() error:', e);
+  }
+}
+
+/* ========== EXWIFE balance badge ========== */
+function ensureBalanceBadge() {
+  let el = document.getElementById('exwifeBal');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'exwifeBal';
+  el.textContent = 'EXWIFE: —';
+  el.style.cssText = "margin-top:8px; display:inline-block; padding:6px 10px; border-radius:999px; background:#1b1b1f; border:1px solid #2a2a30; font-size:12px; opacity:.95;";
+  const status = document.getElementById('status');
+  if (status && status.parentNode) status.parentNode.insertBefore(el, status.nextSibling);
+  else (document.getElementById('presale') || document.body).appendChild(el);
+  return el;
+}
+async function refreshExwifeBalance() {
+  try {
+    ensureBalanceBadge();
+    if (!window.ethereum) return;
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send('eth_accounts', []);
+    if (!accounts?.length) return;
+    const me = accounts[0];
+    const token = new ethers.Contract(window.EXWIFE_ENV?.token, window.TOKEN_ABI_MIN, provider);
+    const [bal, dec, symMaybe] = await Promise.all([
+      token.balanceOf(me),
+      token.decimals(),
+      token.symbol().catch(()=> null)
+    ]);
+    const sym   = symMaybe || window.EXWIFE_ENV?.symbol || 'EXWIFE';
+    const human = Number(ethers.formatUnits(bal, dec));
+    const el = document.getElementById('exwifeBal');
+    if (el) el.textContent = `${sym}: ${human.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+  } catch {
+    const el = document.getElementById('exwifeBal'); if (el) el.textContent = 'EXWIFE: —';
+  }
+}
+
+/* ========== Owner panel (auto-create, collapsible, hidden for non-owner) ========== */
+function ensureOwnerPanelShell() {
+  let el = document.getElementById('ownerPanel');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'ownerPanel';
+  el.style.cssText = "margin-top:14px; border:1px solid #2a2a30; border-radius:12px; background:#121216; padding:10px;";
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;" id="ownerPanelHeader">
+      <div style="font-weight:600;">Owner Panel</div>
+      <div id="ownerPanelChevron" style="opacity:.8; transform:rotate(0deg); transition:transform .2s;">▾</div>
+    </div>
+    <div id="ownerPanelBody" style="margin-top:10px; display:none;">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        <button id="opRefresh" class="btn btn-outline btn-sm" type="button">Refresh Raised</button>
+        <button id="opFinalize" class="btn btn-outline btn-sm" type="button">Finalize (restricted)</button>
+        <button id="opPause"    class="btn btn-outline btn-sm" type="button">Pause (restricted)</button>
+      </div>
+      <div id="ownerNote" class="small" style="opacity:.75;margin-top:8px;">Visible only to owner; controls are placeholders unless wired to contract methods.</div>
+    </div>
+  `;
+  const anchor = document.getElementById('exwifeBal') || document.getElementById('status') || document.getElementById('presale');
+  (anchor?.parentNode || document.getElementById('presale') || document.body).appendChild(el);
+  return el;
+}
+function wireOwnerPanelUI() {
+  const shell = ensureOwnerPanelShell();
+  const header = document.getElementById('ownerPanelHeader');
+  const body   = document.getElementById('ownerPanelBody');
+  const chev   = document.getElementById('ownerPanelChevron');
+  if (header && body && chev) {
+    header.onclick = () => {
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+    };
+  }
+  document.getElementById('opRefresh')?.addEventListener('click', () => refreshRaised());
+  // The finalize/pause buttons are stubs (security hygiene): wire to your contract methods only after gating.
+}
+
+async function evaluateOwnerVisibility() {
+  try {
+    const panel = ensureOwnerPanelShell();
+    panel.style.display = 'none'; // default hide
+
+    if (!window.ethereum) return; // no wallet → hide
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send('eth_accounts', []);
+    if (!accounts?.length) return; // not connected → hide
+    const me = accounts[0].toLowerCase();
+
+    // Resolve owner: ENV override > contract.owner() > hide
+    let owner = window.EXWIFE_ENV?.owner;
+    if (!owner) {
+      try {
+        const c = new ethers.Contract(window.EXWIFE_ENV?.presale, window.PRESALE_ABI || window.PRESALE_ABI_MIN, provider);
+        owner = await c.owner?.();
+      } catch {}
+    }
+    if (!owner) return; // unknown owner → keep hidden
+
+    if (String(owner).toLowerCase() === me) {
+      panel.style.display = 'block';
+      wireOwnerPanelUI();
+    } else {
+      panel.style.display = 'none';
+    }
+  } catch {
+    // silently ignore; keep hidden
+  }
+}
+
+/* ========== Buy (example: fixed 0.01 ETH) ========== */
+async function buyFixed() {
+  try {
+    if (!window.ethereum) throw new Error('No wallet');
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer   = await provider.getSigner();
+    const presale  = new ethers.Contract(window.EXWIFE_ENV.presale, window.PRESALE_ABI || window.PRESALE_ABI_MIN, signer);
+
+    const tx = await presale.buy({ value: ethers.parseEther("0.01") });
+    setStatus('⏳ Pending...', 'ok');
+    await tx.wait();
+
+    toastSuccess(`✅ Buy confirmed — <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" rel="noopener">Etherscan</a>`);
+    document.dispatchEvent(new Event('exwife:tx:confirmed'));
+    await refreshExwifeBalance();
+  } catch (e) {
+    toastError('Buy failed: ' + (e?.message || e));
+  }
+}
+(function wireBuy(){
+  const b = document.getElementById('buyBtn');
+  if (b) { b.type='button'; b.disabled=false; b.addEventListener('click', buyFixed); }
+})();
+
+/* ========== Add EXWIFE to wallet (simple, inline-safe) ========== */
+window.EXWIFE_addToken = async function (ev) {
+  try {
+    ev?.preventDefault?.();
+    if (!window.ethereum) { toastError('No wallet detected.'); return false; }
+    const tokenAddr = window.EXWIFE_ENV?.token;
+    const symbol    = window.EXWIFE_ENV?.symbol || 'EXWIFE';
+    const decimals  = Number(window.EXWIFE_ENV?.decimals ?? 18);
+    if (!tokenAddr) { toastError('Token address missing.'); return false; }
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const ok = await window.ethereum.request({
+      method: 'wallet_watchAsset',
+      params: { type: 'ERC20', options: { address: tokenAddr, symbol, decimals } }
+    });
+    ok ? toastSuccess(`${symbol} added to wallet.`)
+       : toastError(`Could not add ${symbol} to wallet.`);
+    return false;
+  } catch (e) {
+    toastError(`Add token failed: ${e?.message || 'Request rejected'}`);
+    return false;
+  }
+};
+
+/* ========== Hooks & timers ========== */
+document.addEventListener('exwife:tx:confirmed', () => { refreshRaised(); refreshExwifeBalance(); });
+window.addEventListener('load', () => { refreshRaised(); refreshExwifeBalance(); evaluateOwnerVisibility(); });
+
+// 20s auto-refresh
+window.__exwife_refreshTimer ||= setInterval(() => {
+  refreshRaised(); refreshExwifeBalance();
+}, 20000);
+
+// React to account changes
+if (window.ethereum){
+  window.ethereum.on('accountsChanged', () => {
+    refreshRaised(); refreshExwifeBalance(); evaluateOwnerVisibility();
+  });
+}
+/* === Owner Controls: simple toggle fix === */
+(function(){
+  const btn = document.getElementById('ownerToggle');
+  const box = document.getElementById('ownerControls');
+
+  if (!btn || !box) return;
+
+  // Ensure it’s not treated as a form submit button
+  if (!btn.getAttribute('type')) btn.setAttribute('type', 'button');
+
+  // Start hidden if not already
+  if (!box.style.display) box.style.display = 'none';
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const visible = box.style.display !== 'none';
+    box.style.display = visible ? 'none' : 'block';
+
+    // Optional: update the badge text
+    const badge = document.getElementById('ownerBadge');
+    if (badge) badge.textContent = visible ? '' : '(visible)';
+  });
+})();
+/* ===== Quick Fix: Connect wiring + Airdrop wiring (drop-in) ===== */
+(function(){
+  /* ---------- DOM refs ---------- */
+  const btnConnect   = document.getElementById('connect') || document.getElementById('btn-connect');
+  const btnAirdrop   = document.getElementById('btnAirdrop');
+  const inpTo        = document.getElementById('airdropTo');
+  const inpAmt       = document.getElementById('airdropAmt');
+
+  /* Ensure buttons don’t submit forms */
+  [btnConnect, btnAirdrop].forEach(b => { if (b && !b.getAttribute('type')) b?.setAttribute('type','button'); });
+
+  /* ---------- Helpers (non-destructive) ---------- */
+  const hasEthers   = !!window.ethers;
+  const PRESALE     = window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale;
+  const PRESALE_ABI = window.PRESALE_ABI || window.PRESALE_ABI_MIN || [];
+  const TOKEN       = window.TOKEN_ADDRESS   || window.EXWIFE_ENV?.token;
+  const TOKEN_ABI   = window.TOKEN_ABI || window.TOKEN_ABI_MIN || [];
+
+  const getProvider = () => new ethers.BrowserProvider(window.ethereum || null);
+  const getSigner   = async () => (await getProvider()).getSigner();
+  const psRead      = () => new ethers.Contract(PRESALE, PRESALE_ABI, getProvider());
+  const psWrite     = async () => new ethers.Contract(PRESALE, PRESALE_ABI, await getSigner());
+  const parse18     = (x) => ethers.parseUnits(String(x).trim(), 18);
+  const scanTx      = (h) => `https://sepolia.etherscan.io/tx/${h}`;
+
+  function setStatusSafe(msg, kind='info', link=null){
+    try { setStatus?.(msg, kind, link); } catch {}
+  }
+  function toastSafe(msg, kind='info'){
+    try { toast?.(msg, kind); } catch {}
+    console.log(`[EXWIFE] ${kind.toUpperCase()}: ${msg}`);
+  }
+
+  /* ---------- CONNECT: fallback + reattach ---------- */
+  async function fallbackConnect(){
+    try {
+      if (!window.ethereum) { toastSafe('No wallet found (window.ethereum missing). Install MetaMask.', 'error'); return false; }
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const signer  = await getSigner();
+      const account = (await signer.getAddress());
+      setStatusSafe(`Connected: ${account.slice(0,6)}…${account.slice(-4)}`, 'success');
+      // Try to refresh UI bits if those functions exist:
+      try { await window.refreshRaised?.(); } catch {}
+      try { await window.refreshExwifeBalance?.(); } catch {}
+      try { await window.evaluateOwnerVisibility?.(); } catch {}
+      return true;
+    } catch (e) {
+      toastSafe(`Connect failed: ${e.message || e}`, 'error');
+      setStatusSafe('Connect failed', 'error');
+      return false;
+    }
+  }
+
+  if (btnConnect) {
+    btnConnect.onclick = async (e) => {
+      e.preventDefault();
+      // Prefer your existing inline connect if present:
+      if (typeof window.EXWIFE_connectInline === 'function') {
+        try {
+          const ok = await window.EXWIFE_connectInline();
+          if (!ok) await fallbackConnect();
+        } catch {
+          await fallbackConnect();
+        }
+      } else {
+        await fallbackConnect();
+      }
+    };
+  }
+
+  /* ---------- AIRDROP: simulate then send ---------- */
+  if (btnAirdrop && inpTo && inpAmt) {
+    btnAirdrop.onclick = async () => {
+      try {
+        if (!hasEthers) { toastSafe('Ethers.js not loaded', 'error'); return; }
+        if (!PRESALE || !PRESALE_ABI.length) { toastSafe('Presale address/ABI missing', 'error'); return; }
+
+        const to     = (inpTo.value || '').trim();
+        const amtStr = (inpAmt.value || '').trim();
+
+        if (!(to && to.startsWith('0x') && to.length === 42)) { inpTo.focus(); toastSafe('Enter a valid 0x address', 'warn'); return; }
+        if (!amtStr || Number(amtStr) <= 0) { inpAmt.focus(); toastSafe('Enter a positive token amount (EXWIFE, human units)', 'warn'); return; }
+
+        let amt; try { amt = parse18(amtStr); } catch { toastSafe('Amount must be a number (18 decimals)', 'warn'); return; }
+
+        // Dry-run
+        try {
+          await psRead().airdrop.staticCall(to, amt);
+        } catch (simErr) {
+          const msg = simErr?.info?.error?.message || simErr?.shortMessage || simErr?.message || 'Simulation failed';
+          if (/finaliz/i.test(msg))          setStatusSafe('Airdrop blocked: finalize required?', 'error');
+          else if (/owner|only/i.test(msg))  setStatusSafe('Airdrop blocked: connect owner wallet', 'error');
+          else if (/paused/i.test(msg))      setStatusSafe('Airdrop blocked: presale paused', 'error');
+          else if (/insufficient|balance|allowance/i.test(msg)) setStatusSafe('Airdrop blocked: contract lacks tokens', 'error');
+          else setStatusSafe('Airdrop simulation failed', 'error');
+          toastSafe(`Airdrop reverted in simulation: ${msg}`, 'error');
+          return;
+        }
+
+        // Send tx
+        const original = btnAirdrop.textContent;
+        btnAirdrop.disabled = true; btnAirdrop.textContent = 'Airdropping…';
+        const tx = await (await psWrite()).airdrop(to, amt);
+        const link = scanTx(tx.hash);
+        setStatusSafe('Airdrop pending (view tx)', 'warn', link);
+        toastSafe('Airdrop tx sent. Waiting for confirmation…', 'info');
+
+        const rcpt = await tx.wait();
+        if (rcpt?.status === 1) {
+          setStatusSafe('Airdrop confirmed (view tx)', 'success', link);
+          toastSafe('Airdrop confirmed ✅', 'success');
+          try { await window.refreshExwifeBalance?.(); } catch {}
+        } else {
+          setStatusSafe('Airdrop reverted', 'error', link);
+          toastSafe('Airdrop reverted ❌', 'error');
+        }
+        btnAirdrop.disabled = false; btnAirdrop.textContent = original;
+      } catch (e) {
+        toastSafe(`Airdrop error: ${e.message || e}`, 'error');
+        setStatusSafe('Airdrop error', 'error');
+        try { btnAirdrop.disabled = false; btnAirdrop.textContent = '🎁 Airdrop'; } catch {}
+      }
+    };
+  }
+
+  /* ---------- Dev aid: log missing pieces to console ---------- */
+  (function sanity(){
+    if (!btnConnect)  console.warn('[EXWIFE] Connect button not found by id #connect or #btn-connect.');
+    if (!btnAirdrop)  console.warn('[EXWIFE] Airdrop button #btnAirdrop not found.');
+    if (!inpTo)       console.warn('[EXWIFE] Input #airdropTo not found.');
+    if (!inpAmt)      console.warn('[EXWIFE] Input #airdropAmt not found.');
+    if (!hasEthers)   console.warn('[EXWIFE] ethers.js missing. Include UMD once.');
+    if (!PRESALE)     console.warn('[EXWIFE] PRESALE address missing from env.');
+    if (!PRESALE_ABI.length) console.warn('[EXWIFE] PRESALE_ABI missing.');
+  })();
+
+})();
+
+</script>
+<!-- === EXWIFE ENV (addresses/config) === -->
+<script>
+  window.EXWIFE_ENV = {
+    token:  "0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07",  // Sepolia (verified)
+    presale:"0xDe43eA415C91e2789Ac15Cf802487588218A4674"   // current (closed by time)
+  };
+  window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;   // legacy path
+  window.EXWIFE_GOAL_ETH = 1200;                        // progress display goal
+</script>
+
+<!-- === Minimal presale ABI (if you don't already have it) === -->
+<script>
+  window.PRESALE_ABI_MIN = [
+    "function paused() view returns (bool)",
+    "function totalRaisedWei() view returns (uint256)",
+    "function weiRaised() view returns (uint256)",
+    "event Paused(address)",
+    "event Unpaused(address)"
+  ];
+</script>
+
+<!-- === Timeless updater: Buy enabled = !paused(); Progress = totalRaisedWei() (fallbacks) === -->
+<script type="module">
+(async () => {
+  if (typeof ethers === "undefined") { console.warn("ethers missing"); return; }
+  const provider    = new ethers.BrowserProvider(window.ethereum || null);
+  const presaleAddr = window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale;
+  const presaleAbi  = window.PRESALE_ABI || window.PRESALE_ABI_MIN;
+  if (!presaleAddr || !presaleAbi) { console.warn("presale address/abi missing"); return; }
+
+  const presale  = new ethers.Contract(presaleAddr, presaleAbi, provider);
+
+  // Adapt selectors to your DOM
+  const $buyBtn   = document.getElementById("buyBtn") || document.querySelector("[data-exwife='buy']");
+  const $status   = document.getElementById("status") || document.querySelector("#status");
+  const $raisedEl = document.getElementById("raised") || document.querySelector("[data-exwife='raised']");
+  const $progBar  = document.getElementById("progressBar") || document.querySelector("[data-exwife='progress']");
+
+  function setBuyEnabled(enabled, reason = "") {
+    if ($buyBtn) {
+      $buyBtn.disabled = !enabled;
+      $buyBtn.textContent = enabled ? "Buy EXWIFE" : (reason || "Paused");
+      $buyBtn.style.opacity = enabled ? "1" : "0.6";
+      $buyBtn.style.cursor  = enabled ? "pointer" : "not-allowed";
+    }
+    if ($status) {
+      $status.textContent = enabled ? "Ready" : (reason || "Presale paused/closed");
+      $status.className = "exwife-pill " + (enabled ? "ok" : "warn");
+    }
+  }
+
+  function updateProgressUI(raisedEth) {
+    const goalEth = Number(window.EXWIFE_GOAL_ETH || 1200);
+    const pct = Math.max(0, Math.min(100, (raisedEth / goalEth) * 100));
+    if ($raisedEl) $raisedEl.textContent = `${raisedEth.toFixed(4)} ETH`;
+    if ($progBar)  $progBar.style.width = `${Math.max(2, pct)}%`; // keep a visible sliver
+  }
+
+  async function getPausedSafe() {
+    try { return await presale.paused(); } catch { return false; }
+  }
+
+  async function getRaisedEthSafe() {
+    try { return Number(ethers.formatEther(await presale.totalRaisedWei())); } catch {}
+    try { return Number(ethers.formatEther(await presale.weiRaised())); } catch {}
+    try { return Number(ethers.formatEther(await provider.getBalance(presaleAddr))); } catch {}
+    return 0;
+  }
+
+  async function refreshTimeless() {
+    const paused = await getPausedSafe();
+    setBuyEnabled(!paused, paused ? "Paused" : "Closed");
+    const raisedEth = await getRaisedEthSafe();
+    updateProgressUI(raisedEth);
+  }
+
+  // Initial paint + listeners + polling
+  await refreshTimeless();
+  try { presale.on("Paused", refreshTimeless); presale.on("Unpaused", refreshTimeless); } catch {}
+  setInterval(refreshTimeless, 5000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshTimeless(); });
+})();
+</script>
+
+</body>
+</html>
+

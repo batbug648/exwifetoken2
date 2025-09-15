@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EXWIFE Presale</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 14px; padding: 18px; margin: 14px 0; }
+    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #333; background: #fff; cursor: pointer; }
+    input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; width: 120px; }
+    .muted { color:#666; font-size: 13px; }
+    .row { display:flex; gap:10px; align-items:center; }
+  </style>
+</head>
+<body>
+  <h1>Ex-Wife Token (EXWIFE)</h1>
+  <div class="card">
+    <div id="status" class="muted">Not connected</div>
+    <div class="row" style="margin-top:10px">
+      <button id="connect">Connect Wallet</button>
+      <button id="refresh">Refresh</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Buy EXWIFE</h3>
+    <div class="muted">Send Sepolia ETH to the presale contract to mint tokens.</div>
+    <div class="row" style="margin-top:10px">
+      <input id="ethAmount" type="number" min="0.01" step="0.01" value="0.02">
+      <button id="buy">Send ETH</button>
+    </div>
+    <div id="buyMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h3>Your Balances</h3>
+    <div>ETH: <span id="ethBal">-</span></div>
+    <div>EXWIFE: <span id="tokBal">-</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Contract Addresses</h3>
+    <div>Token: <code id="tokenAddr"></code></div>
+    <div>Presale: <code id="presaleAddr"></code></div>
+    <div class="muted">Network: Sepolia</div>
+  </div>
+
+  <!-- Ethers v6 via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <script>
+    // ✅ Your actual contracts
+    const TOKEN_ADDRESS = "0x56b93E10aF78806ACF23Ff2CeD509F6a01aD615E";
+    const PRESALE_ADDRESS = "0xbc37B0CC79a807590f2b68742Fa7333708C9D292";
+
+    const ERC20_ABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+      "function symbol() view returns (string)"
+    ];
+    const PRESALE_ABI = [
+      "function openingTime() view returns (uint64)",
+      "function closingTime() view returns (uint64)",
+      "function minBuyWei() view returns (uint256)",
+      "function finalized() view returns (bool)"
+    ];
+
+    let provider, signer, acct;
+
+    const $ = (id) => document.getElementById(id);
+    const fmt = (v, d=18) => ethers.formatUnits(v, d);
+
+    async function connect() {
+      if (!window.ethereum) { alert("Install MetaMask"); return; }
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      acct = await signer.getAddress();
+      $('status').textContent = "Connected: " + acct;
+      await refresh();
+    }
+
+    async function refresh() {
+      try {
+        if (!provider) provider = new ethers.BrowserProvider(window.ethereum);
+        const network = await provider.getNetwork();
+        $('status').textContent = "Connected to " + network.name + " as " + (acct || "(not connected)");
+
+        // ETH balance
+        if (acct) {
+          const ethBal = await provider.getBalance(acct);
+          $('ethBal').textContent = fmt(ethBal, 18);
+        }
+
+        // Token balance
+        const tk = new ethers.Contract(TOKEN_ADDRESS, ERC20_ABI, provider);
+        if (acct) {
+          const d = await tk.decimals();
+          const bal = await tk.balanceOf(acct);
+          $('tokBal').textContent = fmt(bal, d);
+        }
+
+        // Presale info
+        const ps = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI, provider);
+        const [open, close, minWei, fin] = await Promise.all([
+          ps.openingTime(), ps.closingTime(), ps.minBuyWei(), ps.finalized()
+        ]);
+        const openStr = new Date(Number(open)*1000).toLocaleString();
+        const closeStr = new Date(Number(close)*1000).toLocaleString();
+        $('buyMsg').textContent = `Sale window: ${openStr} → ${closeStr} | Min buy: ${fmt(minWei, 18)} ETH | Finalized: ${fin}`;
+      } catch (e) {
+        $('buyMsg').textContent = "Refresh failed: " + (e && e.message ? e.message : e);
+      }
+    }
+
+    async function buy() {
+      try {
+        if (!signer) await connect();
+        const amt = $('ethAmount').value;
+        if (!amt || Number(amt) <= 0) throw new Error("Enter amount > 0");
+        const tx = await signer.sendTransaction({
+          to: PRESALE_ADDRESS,
+          value: ethers.parseEther(String(amt))
+        });
+        $('buyMsg').textContent = "Sending... " + tx.hash;
+        await tx.wait();
+        $('buyMsg').textContent = "Success! Tx: " + tx.hash;
+        await refresh();
+      } catch (e) {
+        $('buyMsg').textContent = "Buy failed: " + (e && e.message ? e.message : e);
+      }
+    }
+
+    $('tokenAddr').textContent = TOKEN_ADDRESS;
+    $('presaleAddr').textContent = PRESALE_ADDRESS;
+    $('connect').onclick = connect;
+    $('refresh').onclick = refresh;
+    $('buy').onclick = buy;
+  </script>
+</body>
+</html>
+

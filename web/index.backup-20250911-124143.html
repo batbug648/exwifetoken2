@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- EXWIFE v12: resilient, error-proof -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EXWIFE Presale (Sepolia) — v12</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/img/exwife-hero.png" />
+
+  <!-- 1) Ethers UMD (ONE include only; no async/defer) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <!-- 2) ENV + minimal ABI (functions + events) -->
+  <script>
+    window.EXWIFE_ENV = {
+      network: 'sepolia',
+      rpc: 'https://ethereum-sepolia.publicnode.com',
+      presale: '0x739Cd2a31eFd1A7813b2B54D01449620cC2A523c',
+      token:   '0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07',
+      symbol:  'EXWIFE',
+      goalEth: 1200
+    };
+    window.GOAL_ETH = 1200;
+    window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+
+    // Minimal ABI safe for reads + buy; include events so we can safely check for them
+    window.PRESALE_ABI_MIN = [
+      "function paused() view returns (bool)",
+      "function totalRaisedWei() view returns (uint256)",
+      "function weiRaised() view returns (uint256)",
+      "function buy() payable",
+      "event Paused(address indexed account)",
+      "event Unpaused(address indexed account)"
+    ];
+  </script>
+
+  <!-- 3) Safe subscription shim: skip subscribing to missing events -->
+  <script>
+    (function(){
+      if (!window.ethers || !ethers.Contract) return;
+      const _on = ethers.Contract.prototype.on;
+      ethers.Contract.prototype.on = function(event, listener) {
+        try {
+          if (typeof event === 'string' && this.interface && !this.interface.getEvent(event)) {
+            console.warn('[EXWIFE] Skipping subscription to missing event:', event);
+            return this;
+          }
+        } catch (e) {
+          console.warn('[EXWIFE] Event check failed, skipping subscription:', event, e);
+          return this;
+        }
+        return _on.call(this, event, listener);
+      };
+    })();
+  </script>
+
+  <!-- 3.5) Head markers -->
+  <script>
+    window.__EXWIFE_HEAD_MARK = 'HEAD OK';
+    window.el = window.el || (id => document.getElementById(id));
+  </script>
+
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; background:#0e0f12; color:#e7e7ea; }
+    .wrap { max-width:680px; margin:40px auto; padding:0 16px; }
+    .card { background:#141417; border:1px solid #222; border-radius:14px; padding:18px; }
+    .row { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .pill { background:#1c1d22; border:1px solid #2a2b31; padding:6px 10px; border-radius:999px; }
+    .btn { background:#2d6cdf; border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .progress { width:100%; height:14px; background:#1a1b20; border:1px solid #2a2b31; border-radius:10px; overflow:hidden; margin-top:8px; }
+    .bar { height:100%; width:2%; background:#22c55e; transition: width .6s ease; }
+    code { background:#101115; border:1px solid #222; padding:2px 6px; border-radius:8px; }
+    .muted { opacity:.85; }
+    a { color:#9bbcff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+  </style>
+</head>
+<body>
+
+  <!-- EXWIFE Hero Header -->
+  <header style="max-width:980px;margin:24px auto 12px;padding:0 12px;text-align:center;font-family:system-ui,Arial,sans-serif;color:#e7e7ea">
+    <img
+      src="/img/exwife-hero.png"
+      alt="EXWIFE Token"
+      loading="lazy"
+      style="max-width:100%;height:auto;border-radius:16px;display:inline-block;box-shadow:0 6px 24px rgba(0,0,0,.08)"
+    />
+    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Sepolia)</h1>
+    <p style="margin:0;font-size:16px;opacity:.8">Goal: 1200 ETH • Safe, read-only UI until you connect</p>
+  </header>
+
+  <div class="wrap">
+    <h1 style="margin:0 0 6px;">EXWIFE Presale <span class="muted">(Sepolia)</span></h1>
+    <div class="muted" style="margin-bottom:14px;">Goal: <strong id="goal-a">1200</strong> ETH</div>
+
+    <div class="card">
+      <div class="row">
+        <div class="pill" id="status">Ready</div>
+        <div class="row" style="gap:8px;">
+          <button class="btn" id="buyBtn">Buy 0.01 ETH</button>
+          <button class="btn" id="refreshBtn" style="background:#374151">Refresh</button>
+          <a id="txLink" class="pill" href="#" target="_blank" style="display:none;">View tx</a>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div>Raised: <strong id="raised">0.0000</strong> / <span id="goal-b">1200</span> ETH</div>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+      </div>
+
+      <div class="muted" style="margin-top:12px; word-break:break-all;">
+        Presale: <code id="addr"></code>
+        <div style="margin-top:6px;font-size:14px">
+          <a id="scanLink" href="https://sepolia.etherscan.io/address/0x739Cd2a31eFd1A7813b2B54D01449620cC2A523c" target="_blank" rel="noopener">View on Etherscan</a>
+          <button id="copyBtn" style="margin-left:8px;padding:4px 8px;border:1px solid #2a2b31;border-radius:8px;background:#1c1d22;color:#e7e7ea;cursor:pointer">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4) Core logic (ONE block) -->
+  <script>
+    window.__EXWIFE_TAIL_MARK = 'TAIL OK';
+
+    // --- Resilient read-only provider with auto-fallbacks ---
+    const RPCS = [
+      (window.EXWIFE_ENV && window.EXWIFE_ENV.rpc) || '',
+      'https://ethereum-sepolia.publicnode.com',
+      'https://eth-sepolia.public.blastapi.io',
+      'https://1rpc.io/sepolia'
+    ].filter(Boolean);
+
+    let __RO_PROVIDER = null;
+    async function getRO() {
+      if (__RO_PROVIDER) return __RO_PROVIDER;
+      for (const url of RPCS) {
+        try {
+          const p = new ethers.JsonRpcProvider(url);
+          const ok = await Promise.race([
+            p.getBlockNumber(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('RPC timeout')), 2500))
+          ]);
+          if (typeof ok === 'number') { __RO_PROVIDER = p; return __RO_PROVIDER; }
+        } catch {}
+      }
+      throw new Error('No working RPC endpoint');
+    }
+
+    // --- UI helpers ---
+    const el = (id) => document.getElementById(id);
+    function setStatus(msg){ const e = el('status'); if (e) e.textContent = msg; }
+    function updateUI(raisedEth){
+      const goal = Number(window.GOAL_ETH || window.EXWIFE_ENV?.goalEth || 1200);
+      el('goal-a') && (el('goal-a').textContent = goal);
+      el('goal-b') && (el('goal-b').textContent = goal);
+      el('raised') && (el('raised').textContent = Math.max(0, raisedEth).toFixed(4));
+      const pct = Math.max(1.5, Math.min(100, (raisedEth / (goal || 1)) * 100));
+      el('bar') && (el('bar').style.width = pct + '%');
+    }
+
+    // --- Public: refresh raised with fallbacks ---
+    async function EXWIFE_refreshRaised(){
+      try {
+        const addr = window.PRESALE_ADDRESS, abi = window.PRESALE_ABI_MIN;
+        if (!addr) return 0;
+        const ro = await getRO();
+        const presale = new ethers.Contract(addr, abi, ro);
+
+        let w;
+        if (typeof presale.totalRaisedWei === 'function') {
+          try { w = await presale.totalRaisedWei(); } catch {}
+        }
+        if ((!w || w === 0n) && typeof presale.weiRaised === 'function') {
+          try { w = await presale.weiRaised(); } catch {}
+        }
+        if (!w || w === 0n) {
+          try { w = await ro.getBalance(addr); } catch {}
+        }
+
+        const e = Number(ethers.formatEther(w || 0n));
+        updateUI(e);
+        return e;
+      } catch (err) {
+        console.warn("[EXWIFE] EXWIFE_refreshRaised() failed:", err);
+        return 0;
+      }
+    }
+    window.EXWIFE_refreshRaised = EXWIFE_refreshRaised;
+
+    // --- Buy fixed 0.01 flow; respects paused() ---
+    async function buyFixed(){
+      try {
+        setStatus('Connecting…');
+        if (!window.ethereum) { alert("No wallet provider found."); setStatus('No wallet'); return; }
+
+        const mm = (window.ethereum.providers || []).find(p => p.isMetaMask) || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+        await mm.request({ method: 'eth_requestAccounts' });
+
+        const provider = new ethers.BrowserProvider(mm);
+        const signer   = await provider.getSigner();
+        const addr = window.PRESALE_ADDRESS, abi = window.PRESALE_ABI_MIN;
+        const presale  = new ethers.Contract(addr, abi, signer);
+
+        setStatus('Checking status…');
+        let isPaused = false;
+        try { isPaused = await presale.paused(); } catch {}
+        if (isPaused) { setStatus('Paused'); alert('Presale is paused.'); return; }
+
+        setStatus('Submitting tx…');
+        const tx = await presale.buy({ value: ethers.parseEther('0.01') });
+        const link = el('txLink');
+        if (link) { link.href = `https://sepolia.etherscan.io/tx/${tx.hash}`; link.style.display=''; }
+        await tx.wait();
+        setStatus('✅ Confirmed');
+        await window.EXWIFE_refreshRaised();
+      } catch (e) {
+        console.error('buy() failed:', e);
+        setStatus('❌ Error');
+        alert('Buy failed: ' + (e?.reason || e?.message || e));
+      }
+    }
+
+    // --- Paused pill updater on load ---
+    async function updatePausedPill(){
+      try {
+        const ro = await getRO();
+        const c  = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
+        let isPaused = false; try { isPaused = await c.paused(); } catch {}
+        setStatus(isPaused ? 'Paused' : 'Ready');
+      } catch {}
+    }
+
+    // --- Boot ---
+    (function boot(){
+      const addr = window.PRESALE_ADDRESS || '(missing)';
+      el('addr') && (el('addr').textContent = addr);
+      el('scanLink') && (el('scanLink').href = `https://sepolia.etherscan.io/address/${addr}`);
+      el('copyBtn') && el('copyBtn').addEventListener('click', () => navigator.clipboard.writeText(addr));
+      el('buyBtn') && el('buyBtn').addEventListener('click', buyFixed);
+      el('refreshBtn') && el('refreshBtn').addEventListener('click', () => EXWIFE_refreshRaised());
+
+      // Initial paint + auto-refresh
+      const tick = async () => { try { await window.EXWIFE_refreshRaised(); } catch (e) { console.warn('tick failed:', e); } };
+      tick();
+      updatePausedPill();
+      window.EXWIFE_AUTO = window.EXWIFE_AUTO || {};
+      clearInterval(window.EXWIFE_AUTO.raised);
+      window.EXWIFE_AUTO.raised = setInterval(tick, 20000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+      console.log('EXWIFE v12 loaded');
+    })();
+  </script>
+</body>
+</html>
+

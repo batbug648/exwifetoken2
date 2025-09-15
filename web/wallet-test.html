@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>EXWIFE Wallet Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="font-family:system-ui;background:#0a0a0b;color:#fff;padding:20px">
+  <h1>Wallet Connect Smoke Test</h1>
+
+  <button id="btn" style="padding:10px 14px;border-radius:10px;border:1px solid #333;background:#1f1f22;cursor:pointer;">
+    Connect Wallet
+  </button>
+  <div id="status" style="margin-top:10px;font-family:monospace;">Not connected</div>
+  <pre id="log" style="margin-top:16px;background:#000;border:1px solid #222;border-radius:12px;padding:12px;overflow:auto;max-height:220px;"></pre>
+
+  <!-- ethers (single include) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <script>
+  (function(){
+    "use strict";
+    function $(id){ return document.getElementById(id); }
+    function log(m){ $("log").textContent += m + "\n"; }
+    function short(a){ return a ? a.slice(0,6)+"…"+a.slice(-4) : ""; }
+    async function connect(){
+      if(!window.ethereum){ alert("No wallet detected"); log("No window.ethereum"); return; }
+      try{
+        try{ await ethereum.request({ method:"wallet_switchEthereumChain", params:[{ chainId:"0xaa36a7" }] }); }catch(_){}
+        const accts = await ethereum.request({ method:"eth_requestAccounts" });
+        const addr = accts && accts[0] ? accts[0] : null;
+        $("status").textContent = "Connected: " + short(addr);
+        log("✅ Connected: " + addr);
+      }catch(e){
+        log("⛔ " + (e && e.message ? e.message : e));
+        alert("Connect error: " + (e && e.message ? e.message : e));
+      }
+    }
+    $("btn").addEventListener("click", function(ev){ ev.preventDefault(); connect(); });
+    log("ℹ️ Test page ready");
+  })();
+  </script>
+</body>
+</html>
+

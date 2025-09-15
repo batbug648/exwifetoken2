@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>EXWIFE — Meme Coin Presale (Aug 22)</title>
+  <link rel="canonical" href="https://exwifetoken.com/" />
+
+  <!-- Fonts + Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+
+  <!-- ==== SEO / Preview Metadata ==== -->
+  <meta name="description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://exwifetoken.com/" />
+  <meta property="og:title" content="EXWIFE — Meme Coin Presale (Aug 22)" />
+  <meta property="og:description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta property="og:image" content="https://exwifetoken.com/img/exwife-hero.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="EXWIFE — Meme Coin Presale (Aug 22)" />
+  <meta name="twitter:description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta name="twitter:image" content="https://exwifetoken.com/img/exwife-hero.png" />
+
+  <link rel="icon" href="/favicon.ico" />
+
+  <style>
+    /* Minimal fallback for .banner */
+    .banner {
+      width: 100%;
+      height: 280px;
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        url("/img/exwife-hero.png") center/cover no-repeat;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .muted { color: var(--gray); }
+    .countdown { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
+    .cd-box { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); padding:10px 12px; border-radius:12px; }
+    .cd-box span { font-size:22px; font-weight:800; display:block; }
+    .cd-box label { font-size:12px; color: var(--gray); text-transform:uppercase; letter-spacing:0.06em; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HERO ===== -->
+  <div class="container">
+    <header class="mb-8" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div class="exwife-pill">EXWIFE • Presale</div>
+      <a href="#presale" class="exwife-btn">Enter Presale</a>
+    </header>
+
+    <section class="grid grid-2" id="hero">
+      <div>
+        <h1>The <span class="text-pink">EX-WIFE</span> is here.</h1>
+        <p class="text-gray mt-4" style="font-size:18px;">
+          10B supply. Aug 20 presale. Claim your slice before the divorce settles.
+        </p>
+
+        <div class="mt-6">
+          <a href="#presale" class="exwife-btn">Buy in Presale</a>
+          <a href="#how" class="exwife-btn" style="margin-left:8px;opacity:.9;">How it works</a>
+        </div>
+
+        <!-- Countdown -->
+        <div class="exwife-card mt-6">
+          <h3>Presale Countdown</h3>
+          <div id="countdown" class="countdown">
+            <div class="cd-box"><span id="cd-days">--</span><label>Days</label></div>
+            <div class="cd-box"><span id="cd-hours">--</span><label>Hours</label></div>
+            <div class="cd-box"><span id="cd-mins">--</span><label>Mins</label></div>
+            <div class="cd-box"><span id="cd-secs">--</span><label>Secs</label></div>
+          </div>
+          <div id="cd-status" class="muted" style="margin-top:8px">Loading timer…</div>
+        </div>
+      </div>
+
+      <div class="exwife-card">
+        <!-- Banner image / hero art -->
+      <img src="./img/exwife-hero.png" alt="EXWIFE" class="hero" />
+      </div>
+    </section>
+  </div>
+
+<!-- ===== Presale Interaction Test ===== -->
+<section id="presale-test" class="max-w-xl mx-auto" style="margin:2rem auto; padding:1rem;">
+  <div style="background:#141417; border:1px solid #222; border-radius:16px; padding:20px;">
+    <h2 style="margin:0 0 8px; color:#fff;">Presale Interaction Test (Sepolia)</h2>
+    <p style="opacity:.8; margin:0 0 12px; color:#ddd;">
+      Connect your wallet, then try a small test buy (0.01 ETH) against the <strong>Test Presale</strong>.
+    </p>
+
+    <!-- Buttons styled to be readable -->
+    <button id="btn-connect"
+            style="padding:10px 14px; border-radius:10px; border:1px solid #444;
+                   background:#222; color:#fff; font-weight:600; cursor:pointer;">
+      Connect Wallet
+    </button>
+
+    <div id="acct" style="margin-top:10px; font-family:monospace; color:#ccc;"></div>
+    <div id="bal"  style="margin-top:4px;  font-family:monospace; color:#ccc;"></div>
+
+    <div style="display:flex; gap:8px; margin-top:16px; align-items:center;">
+      <button id="btn-buy" disabled
+              style="padding:10px 14px; border-radius:10px; border:1px solid #444;
+                     background:#222; color:#fff; font-weight:600; cursor:pointer;">
+        Test Buy 0.01 ETH
+      </button>
+
+      <input id="custom-eth" type="number" step="0.001" min="0.001" placeholder="Custom ETH (e.g. 0.02)"
+             style="flex:1; padding:10px; border-radius:10px; border:1px solid #333;
+                    background:#0a0a0b; color:#ddd;">
+
+      <button id="btn-buy-custom" disabled
+              style="padding:10px 14px; border-radius:10px; border:1px solid #444;
+                     background:#222; color:#fff; font-weight:600; cursor:pointer;">
+        Buy Custom
+      </button>
+    </div>
+
+    <!-- Balance + Progress -->
+    <div id="tokenBalance" style="margin-top:12px; font-family:monospace; color:#9eff9e;"></div>
+    <div style="margin-top:16px;">
+      <div style="color:#fff; margin-bottom:4px;">Presale Progress</div>
+      <progress id="progressBar" value="0" max="100" style="width:100%; height:20px;"></progress>
+      <div id="progressText" style="color:#aaa; margin-top:4px; font-size:14px;"></div>
+    </div>
+
+    <pre id="log"
+         style="margin-top:16px; background:#0a0a0b; border:1px solid #222; border-radius:12px;
+                color:#c9d1d9; padding:12px; max-height:280px; overflow:auto;"></pre>
+  </div>
+</section>
+
+  <!-- ===== PRESALE (polished) ===== -->
+  <section id="presale" class="container" style="padding-top:20px; padding-bottom:60px;">
+    <!-- Wallet / Controls -->
+    <div class="exwife-card" style="margin-bottom:16px;">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+        <div class="exwife-pill" id="status">Not connected</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <button id="connect" class="exwife-btn">Connect Wallet</button>
+          <button id="refresh" class="exwife-btn" style="opacity:.95;">Refresh</button>
+          <button id="addTokenBtn" class="exwife-btn" style="opacity:.95;">Add EXWIFE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buy + Progress -->
+    <div class="exwife-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <h3 style="margin:0;">Buy EXWIFE</h3>
+        <span class="exwife-pill">Target: <strong style="margin-left:6px;color:var(--green)">1.0 ETH</strong></span>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 12px;">
+        <div>Raised: <b><span id="raisedEth">0</span> ETH</b></div>
+        <div>Goal: <b><span id="goalEth">0</span> ETH</b></div>
+        <div>Status: <b><span id="saleStatus">Loading…</span></b></div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="progress"><div class="fill" id="progressFill" style="width:0%;"></div></div>
+      <div class="muted" id="progressMsg" style="margin-top:8px"></div>
+
+      <!-- Buy Form -->
+      <div class="mt-6" style="display:grid;grid-template-columns:1fr auto;gap:12px;">
+        <input id="ethAmount" class="input" type="number" min="0.01" step="0.01" value="0.02" placeholder="0.01">
+        <button id="buy" class="exwife-btn">Send ETH</button>
+      </div>
+      <div id="buyMsg" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Balances -->
+    <div class="exwife-card" style="margin-top:16px;">
+      <h3 style="margin:0 0 10px 0;">Your Balances</h3>
+      <div>ETH: <span id="ethBal">-</span></div>
+      <div>EXWIFE: <span id="tokBal">-</span></div>
+    </div>
+
+    <!-- Contract Addresses -->
+    <div class="exwife-card" style="margin-top:16px;">
+      <h3 style="margin:0 0 10px 0;">Contract Addresses</h3>
+      <div>
+        Token: <code id="tokenAddr"></code>
+        — <a id="tokenLink" class="exwife-pill" target="_blank" rel="noreferrer">View Token</a>
+      </div>
+      <div style="margin-top:6px;">
+        Presale: <code id="presaleAddr"></code>
+        — <a id="presaleLink" class="exwife-pill" target="_blank" rel="noreferrer">View Presale</a>
+      </div>
+      <div class="muted" style="margin-top:6px;">Network: Sepolia</div>
+    </div>
+  </section>
+
+  <!-- ===== Scripts (put your existing logic here) ===== -->
+  <script src="/vendor/ethers.umd.min.js"></script>
+  <script>
+    // If you already define these globally elsewhere, remove this example.
+    // const TOKEN_ADDRESS = "0xYourToken";
+    // const PRESALE_ADDRESS = "0xYourPresale";
+
+    (function () {
+      try {
+        // Wire up Etherscan links if addresses exist
+        if (typeof TOKEN_ADDRESS !== 'undefined') {
+          const t = document.getElementById('tokenLink');
+          const ta = document.getElementById('tokenAddr');
+          if (t) t.href = `https://sepolia.etherscan.io/token/${TOKEN_ADDRESS}`;
+          if (ta) ta.textContent = TOKEN_ADDRESS;
+        }
+        if (typeof PRESALE_ADDRESS !== 'undefined') {
+          const p = document.getElementById('presaleLink');
+          const pa = document.getElementById('presaleAddr');
+          if (p) p.href = `https://sepolia.etherscan.io/address/${PRESALE_ADDRESS}`;
+          if (pa) pa.textContent = PRESALE_ADDRESS;
+        }
+
+        // Add EXWIFE to wallet
+        const addBtn = document.getElementById('addTokenBtn');
+        if (addBtn && window.ethereum && typeof TOKEN_ADDRESS !== 'undefined') {
+          addBtn.addEventListener('click', async () => {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_watchAsset',
+                params: {
+                  type: 'ERC20',
+                  options: {
+                    address: TOKEN_ADDRESS,
+                    symbol: 'EXWIFE',
+                    decimals: 18,
+                    image: location.origin + '/img/exwife-32.png'
+                  }
+                }
+              });
+            } catch (err) { console.error(err); }
+          });
+        }
+      } catch (e) { console.error(e); }
+    })();
+  </script>
+
+  <!-- Your existing countdown + presale interaction scripts should remain below -->
+  <!-- <script src="./js/countdown.js"></script> -->
+  <!-- <script src="./js/presale.js"></script> -->
+  <!-- Your other scripts (presale.js, ethers.js, etc.) -->
+
+  <!-- Countdown -->
+  <script src="./countdown.js"></script>
+
+  <!-- Ethers v6 UMD (keep only ONE on the page) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.1/dist/ethers.umd.min.js"></script>
+
+<script>
+(() => {
+  // ===== Config (Sepolia) =====
+  const PRESALE_ADDRESS = "0xDe43eA415C91e2789Ac15Cf802487588218A4674";
+  const PRESALE_ABI = ["function buy() payable"];
+
+  // UI
+  const els = {
+    connect:   document.getElementById("btn-connect"),
+    buy:       document.getElementById("btn-buy"),
+    buyCustom: document.getElementById("btn-buy-custom"),
+    customEth: document.getElementById("custom-eth"),
+    acct:      document.getElementById("acct"),
+    bal:       document.getElementById("bal"),
+    log:       document.getElementById("log"),
+  };
+
+  function log(...msgs){
+    if (!els.log) return;
+    const line = msgs.map(m => typeof m === "string" ? m : JSON.stringify(m,null,2)).join(" ");
+    els.log.textContent += line + "\n";
+    els.log.scrollTop = els.log.scrollHeight;
+    console.log("[EXWIFE]", ...msgs);
+  }
+
+  // prefer MetaMask
+  function injected(){
+    const eth = window.ethereum;
+    if (!eth) return null;
+    if (Array.isArray(eth.providers)) {
+      const mm = eth.providers.find(p => p.isMetaMask);
+      return mm || eth.providers[0];
+    }
+    return eth;
+  }
+
+  function setButtons(connected){
+    if (els.buy) els.buy.disabled = !connected;
+    if (els.buyCustom) els.buyCustom.disabled = !connected;
+  }
+
+  // ---- Multi-CDN ethers loader with timeout & fallbacks ----
+  function withEthers(cb){
+    if (window.ethers && window.ethers.BrowserProvider) return cb(window.ethers);
+    const cdns = [
+      "https://cdn.jsdelivr.net/npm/ethers@6.15.1/dist/ethers.umd.min.js",
+      "https://unpkg.com/ethers@6.15.1/dist/ethers.umd.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.1/ethers.umd.min.js"
+    ];
+    let i = 0;
+    (function tryNext(){
+      if (window.ethers && window.ethers.BrowserProvider) return cb(window.ethers);
+      if (i >= cdns.length) { log("❌ Failed to load ethers from all CDNs."); return cb(null); }
+      const url = cdns[i++];
+      const s = document.createElement("script");
+      s.src = url;
+      s.async = true;
+      let done = false;
+      const to = setTimeout(() => { if (!done) { log("⏱️ CDN timed out:", url); s.remove(); tryNext(); } }, 6000);
+      s.onload = () => { done = true; clearTimeout(to); cb(window.ethers || null); };
+      s.onerror = () => { done = true; clearTimeout(to); log("⚠️ CDN failed:", url); tryNext(); };
+      document.head.appendChild(s);
+    })();
+  }
+
+  async function ensureSepolia(eth){
+    const chainId = await eth.request({ method: "eth_chainId" });
+    if (parseInt(chainId,16) === 11155111) return;
+    try {
+      log("Switching to Sepolia (0xaa36a7)…");
+      await eth.request({ method:"wallet_switchEthereumChain", params:[{ chainId:"0xaa36a7" }]});
+      log("✅ Switched to Sepolia.");
+    } catch(e){
+      if (e && e.code === 4902) {
+        await eth.request({
+          method:"wallet_addEthereumChain",
+          params:[{
+            chainId:"0xaa36a7", chainName:"Sepolia",
+            nativeCurrency:{ name:"Sepolia ETH", symbol:"ETH", decimals:18 },
+            rpcUrls:["https://rpc.sepolia.org"],
+            blockExplorerUrls:["https://sepolia.etherscan.io"]
+          }]
+        });
+        await eth.request({ method:"wallet_switchEthereumChain", params:[{ chainId:"0xaa36a7" }]});
+        log("✅ Added & switched to Sepolia.");
+      } else { throw e; }
+    }
+  }
+
+  function toHexWei(amountEthStr){
+    const [whole, frac=""] = String(amountEthStr).split(".");
+    const fracPadded = (frac + "000000000000000000").slice(0,18);
+    const wei = BigInt(whole || "0") * 10n**18n + BigInt(fracPadded);
+    return "0x" + wei.toString(16);
+  }
+
+  async function connect(){
+    const eth = injected();
+    if (!eth) { log("❌ No wallet detected. Install/enable MetaMask."); return; }
+    try{
+      log("Requesting accounts…");
+      await eth.request({ method:"eth_requestAccounts" });
+      await ensureSepolia(eth);
+
+      // attempt to load ethers and show balance; still connect even if it fails
+      withEthers(async (E) => {
+        try {
+          if (!E) throw new Error("ethers load failed");
+          const { BrowserProvider, formatEther } = E;
+          const provider = new BrowserProvider(eth);
+          const signer = await provider.getSigner();
+          const acct = await signer.getAddress();
+          els.acct.textContent = "Account: " + acct;
+          const bal = await provider.getBalance(acct);
+          els.bal.textContent = "Sepolia ETH: " + formatEther(bal);
+        } catch {
+          // minimal state without ethers
+          const [chainId, accounts] = await Promise.all([
+            eth.request({ method:"eth_chainId" }),
+            eth.request({ method:"eth_accounts" })
+          ]);
+          els.acct.textContent = "Account: " + (accounts?.[0] ?? "—");
+          log("⚠️ Proceeding without ethers (will use low-level call). Chain:", chainId);
+        }
+        setButtons(true);
+        log("✅ Connected");
+      });
+    } catch(e){
+      setButtons(false);
+      log("⛔ Connect failed", { code:e.code, msg:e.message });
+      if (e.code === -32002) log("Hint: Pending request in MetaMask — click the 🦊 and finish it.");
+    }
+  }
+async function buy(amountEthStr){
+  const eth = injected();
+  if (!eth) { log("❌ No wallet detected."); return; }
+  const accounts = await eth.request({ method:"eth_accounts" });
+  const from = accounts?.[0];
+  if (!from) { log("❌ Connect wallet first."); return; }
+  
+  const valueHex = toHexWei(amountEthStr || "0");
+  if (valueHex === "0x0") return log("Enter a positive ETH amount.");
+
+  // 🔒 Disable buttons while pending
+  els.buy.disabled = true;
+  els.buyCustom.disabled = true;
+
+  try {
+    // ===== Path 1: ethers Contract.buy() =====
+    await withEthers(async (E) => {
+      if (E && E.BrowserProvider) {
+        try {
+          const { BrowserProvider, Contract, parseEther } = E;
+          const provider = new BrowserProvider(eth);
+          const signer   = await provider.getSigner();
+          const presale  = new Contract(PRESALE_ADDRESS, PRESALE_ABI, signer);
+
+          log(`🛒 presale.buy() with ${amountEthStr} ETH…`);
+          const tx = await presale.buy({ value: parseEther(String(amountEthStr)) });
+          log({ submitting_tx_hash: tx.hash });
+          const rcpt = await tx.wait();
+          log("✅ buy() success", `https://sepolia.etherscan.io/tx/${rcpt.hash}`);
+
+          if (window.__exwifeRefreshUI) { window.__exwifeRefreshUI(); }
+          return;
+        } catch (e1) {
+          log("⚠️ buy() via ethers failed; falling back to raw call", { code:e1.code, msg:e1.message });
+        }
+      }
+    });
+
+    // ===== Path 2: low-level raw buy() call =====
+    try {
+      const data = "0xa6f2ae3a"; // selector for buy()
+      log(`💸 raw buy() call ${amountEthStr} ETH → ${PRESALE_ADDRESS} …`);
+      const txHash = await eth.request({
+        method: "eth_sendTransaction",
+        params: [{ from, to: PRESALE_ADDRESS, value: valueHex, data }]
+      });
+      log("Submitted:", txHash);
+      log(`🔗 https://sepolia.etherscan.io/tx/${txHash}`);
+      if (window.__exwifeRefreshUI) { window.__exwifeRefreshUI(); }
+    } catch (e2) {
+      log("❌ Transaction failed", { code:e2.code, msg:e2.message });
+    }
+
+  } finally {
+    // 🔓 Re-enable buttons no matter what
+    els.buy.disabled = false;
+    els.buyCustom.disabled = false;
+  }
+}
+
+// Fallback: low-level tx that encodes buy() selector directly.
+// buy() selector = first 4 bytes of keccak256("buy()") = 0xa6f2ae3a
+try {
+  const data = "0xa6f2ae3a";
+  log(`💸 raw buy() call ${amountEthStr} ETH → ${PRESALE_ADDRESS} …`);
+  const txHash = await eth.request({
+    method: "eth_sendTransaction",
+    params: [{ from, to: PRESALE_ADDRESS, value: valueHex, data }]
+  });  
+  log("Submitted:", txHash);
+  log(`🔗 https://sepolia.etherscan.io/tx/${txHash}`);
+
+  // 🔄 Refresh balance + progress after raw-send
+  if (window.__exwifeRefreshUI) {
+    window.__exwifeRefreshUI();
+  }
+} catch(e2) {
+  log("❌ Transaction failed", { code:e2.code, msg:e2.message });
+}
+
+    });
+  }
+
+  // Wire up
+  els.connect?.addEventListener("click", connect);
+  els.buy?.addEventListener("click", () => buy("0.01"));
+  els.buyCustom?.addEventListener("click", () => {
+    const v = (els.customEth?.value || "").trim();
+    if (!v) return log("Enter a custom ETH amount first.");
+    buy(v);
+  });
+
+  // Passive init
+  (async () => {
+    const eth = injected();
+    if (!eth) { log("No window.ethereum detected."); return; }
+    const accounts = await eth.request({ method:"eth_accounts" }).catch(()=>[]);
+    els.acct && (els.acct.textContent = "Account: " + (accounts?.[0] ?? "—"));
+  })();
+})();
+</script>
+<script>
+  // === Balance + Progress helpers ===
+  (function () {
+    const TOKEN_ADDRESS   = "0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07"; // your EXWIFE token
+    const PRESALE_ADDRESS = "0xDe43eA415C91e2789Ac15Cf802487588218A4674"; // your presale
+    const TOKEN_ABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function decimals() view returns (uint8)"
+    ];
+    const PRESALE_ABI_READ = [
+      "function totalRaisedWei() view returns (uint256)"
+    ];
+
+    const els = {
+      tokenBalance: document.getElementById("tokenBalance"),
+      progressBar:  document.getElementById("progressBar"),
+      progressText: document.getElementById("progressText"),
+      log:          document.getElementById("log"),
+    };
+
+    function safeLog() {
+      if (!els.log) return;
+      const line = Array.from(arguments).map(m => typeof m === "string" ? m : JSON.stringify(m, null, 2)).join(" ");
+      els.log.textContent += line + "\n";
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+
+    // Goal for the progress bar (in ETH). Adjust as you like.
+    const GOAL_ETH = 1200;
+
+    async function refreshUI(provider, account) {
+      try {
+        if (!provider) return;
+
+        // Token balance
+        if (account) {
+          const token = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
+          const [bal, dec] = await Promise.all([
+            token.balanceOf(account),
+            token.decimals()
+          ]);
+          const human = ethers.formatUnits(bal, dec);
+          if (els.tokenBalance) els.tokenBalance.textContent = `Your EXWIFE: ${human}`;
+        }
+
+        // Presale raised
+        const presale = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI_READ, provider);
+        const raisedWei = await presale.totalRaisedWei();
+        const raisedEth = parseFloat(ethers.formatEther(raisedWei));
+        const pct = Math.min((raisedEth / GOAL_ETH) * 100, 100);
+        if (els.progressBar)  els.progressBar.value = isFinite(pct) ? pct : 0;
+        if (els.progressText) els.progressText.textContent = `${raisedEth} / ${GOAL_ETH} ETH raised`;
+      } catch (e) {
+        safeLog("Refresh UI failed:", e.message || e);
+      }
+    }
+
+    // Hook into existing globals if present
+    // Try to call refresh after connect and after buy.
+    // If your main script exposes provider/account, call immediately:
+    window.addEventListener("load", async () => {
+      try {
+        const eth = window.ethereum;
+        if (!eth || !window.ethers) return;
+        const provider = new ethers.BrowserProvider(eth);
+        const accounts = await provider.send("eth_accounts", []);
+        const acct = accounts?.[0] || null;
+        await refreshUI(provider, acct);
+
+        // Listen to account changes and update UI
+        if (window.ethereum && window.ethereum.on) {
+          window.ethereum.on("accountsChanged", async (a) => {
+            const p = new ethers.BrowserProvider(window.ethereum);
+            await refreshUI(p, a?.[0] || null);
+          });
+          window.ethereum.on("chainChanged", async () => {
+            const p = new ethers.BrowserProvider(window.ethereum);
+            const a = await p.send("eth_accounts", []);
+            await refreshUI(p, a?.[0] || null);
+          });
+        }
+
+        // Expose a helper you can call from your existing buy() success path:
+        window.__exwifeRefreshUI = async function () {
+          const p = new ethers.BrowserProvider(window.ethereum);
+          const a = await p.send("eth_accounts", []);
+          await refreshUI(p, a?.[0] || null);
+        };
+      } catch (e) {
+        safeLog("Init UI helpers failed:", e.message || e);
+      }
+    });
+  })();
+</script>
+</body>
+</html>
+

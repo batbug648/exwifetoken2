@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ex-Wife Token (EXWIFE)</title>
+
+  <!-- Fonts + Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+
+  <!-- (Optional) Social previews — fill these later in Step 2 -->
+  <!--
+  <meta property="og:title" content="EXWIFE Token Presale 🚀" />
+  <meta property="og:description" content="The EX-WIFE is here. 10B supply. Presale live Aug 20." />
+  <meta property="og:image" content="https://exwifetoken.com/img/og-image.png" />
+  <meta property="og:url" content="https://exwifetoken.com" />
+  <meta name="twitter:card" content="summary_large_image" />
+  -->
+  <style>
+    /* Minimal fallback for .banner (replace with a real image if you want) */
+    .banner {
+      width: 100%;
+      height: 280px;
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        url("./img/your-hero.png") center/cover no-repeat;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .muted { color: var(--gray); }
+    /* Simple countdown grid if you already have the script */
+    .countdown { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
+    .cd-box { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:10px 12px; min-width:72px; text-align:center; }
+    .cd-box span { font-size:22px; font-weight:800; display:block; }
+    .cd-box label { font-size:12px; color: var(--gray); text-transform:uppercase; letter-spacing: .04em; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HERO ===== -->
+  <div class="container">
+    <header class="mb-8" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div class="exwife-pill">EXWIFE • Presale</div>
+      <a href="#presale" class="exwife-btn">Enter Presale</a>
+    </header>
+
+    <section class="grid grid-2" id="hero">
+      <div>
+        <h1>The <span class="text-pink">EX-WIFE</span> is here.</h1>
+        <p class="text-gray mt-4" style="font-size:18px;">
+          10B supply. Aug 20 presale. Claim your slice before the divorce settles.
+        </p>
+
+        <div class="mt-6">
+          <a href="#presale" class="exwife-btn">Buy in Presale</a>
+          <a href="#how" class="exwife-btn" style="margin-left:8px;opacity:.9;">How it works</a>
+        </div>
+
+        <!-- Countdown -->
+        <div class="exwife-card mt-6">
+          <h3>Presale Countdown</h3>
+          <div id="countdown" class="countdown">
+            <div class="cd-box"><span id="cd-days">--</span><label>Days</label></div>
+            <div class="cd-box"><span id="cd-hours">--</span><label>Hours</label></div>
+            <div class="cd-box"><span id="cd-mins">--</span><label>Mins</label></div>
+            <div class="cd-box"><span id="cd-secs">--</span><label>Secs</label></div>
+          </div>
+          <div id="cd-status" class="muted" style="margin-top:8px">Loading timer…</div>
+        </div>
+      </div>
+
+      <div class="exwife-card">
+        <!-- Banner image / hero art -->
+      <img src="./img/exwife-hero.png" alt="EXWIFE" class="hero" />
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== PRESALE (polished) ===== -->
+  <section id="presale" class="container" style="padding-top:20px; padding-bottom:60px;">
+    <!-- Wallet / Controls -->
+    <div class="exwife-card" style="margin-bottom:16px;">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+        <div class="exwife-pill" id="status">Not connected</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <button id="connect" class="exwife-btn">Connect Wallet</button>
+          <button id="refresh" class="exwife-btn" style="opacity:.95;">Refresh</button>
+          <button id="addTokenBtn" class="exwife-btn" style="opacity:.95;">Add EXWIFE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buy + Progress -->
+    <div class="exwife-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <h3 style="margin:0;">Buy EXWIFE</h3>
+        <span class="exwife-pill">Target: <strong style="margin-left:6px;color:var(--green)">1.0 ETH</strong></span>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 12px;">
+        <div>Raised: <b><span id="raisedEth">0</span> ETH</b></div>
+        <div>Goal: <b><span id="goalEth">0</span> ETH</b></div>
+        <div>Status: <b><span id="saleStatus">Loading…</span></b></div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="progress"><div class="fill" id="progressFill" style="width:0%;"></div></div>
+      <div class="muted" id="progressMsg" style="margin-top:8px"></div>
+
+      <!-- Buy Form -->
+      <div class="mt-6" style="display:grid;grid-template-columns:1fr auto;gap:12px;">
+        <input id="ethAmount" class="input" type="number" min="0.01" step="0.01" value="0.02" placeholder="0.01">
+        <button id="buy" class="exwife-btn">Send ETH</button>
+      </div>
+      <div id="buyMsg" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Balances -->
+    <div class="exwife-card" style="margin-top:16px;">
+      <h3 style="margin:0 0 10px 0;">Your Balances</h3>
+      <div>ETH: <span id="ethBal">-</span></div>
+      <div>EXWIFE: <span id="tokBal">-</span></div>
+    </div>
+
+    <!-- Contract Addresses -->
+    <div class="exwife-card" style="margin-top:16px;">
+      <h3 style="margin:0 0 10px 0;">Contract Addresses</h3>
+      <div>
+        Token: <code id="tokenAddr"></code>
+        — <a id="tokenLink" class="exwife-pill" target="_blank" rel="noreferrer">View Token</a>
+      </div>
+      <div style="margin-top:6px;">
+        Presale: <code id="presaleAddr"></code>
+        — <a id="presaleLink" class="exwife-pill" target="_blank" rel="noreferrer">View Presale</a>
+      </div>
+      <div class="muted" style="margin-top:6px;">Network: Sepolia</div>
+    </div>
+  </section>
+
+  <!-- ===== Scripts (put your existing logic here) ===== -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script> -->
+  <script>
+    // If you already define these globally elsewhere, remove this example.
+    // const TOKEN_ADDRESS = "0xYourToken";
+    // const PRESALE_ADDRESS = "0xYourPresale";
+
+    (function () {
+      try {
+        // Wire up Etherscan links if addresses exist
+        if (typeof TOKEN_ADDRESS !== 'undefined') {
+          const t = document.getElementById('tokenLink');
+          const ta = document.getElementById('tokenAddr');
+          if (t) t.href = `https://sepolia.etherscan.io/token/${TOKEN_ADDRESS}`;
+          if (ta) ta.textContent = TOKEN_ADDRESS;
+        }
+        if (typeof PRESALE_ADDRESS !== 'undefined') {
+          const p = document.getElementById('presaleLink');
+          const pa = document.getElementById('presaleAddr');
+          if (p) p.href = `https://sepolia.etherscan.io/address/${PRESALE_ADDRESS}`;
+          if (pa) pa.textContent = PRESALE_ADDRESS;
+        }
+
+        // Add EXWIFE to wallet
+        const addBtn = document.getElementById('addTokenBtn');
+        if (addBtn && window.ethereum && typeof TOKEN_ADDRESS !== 'undefined') {
+          addBtn.addEventListener('click', async () => {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_watchAsset',
+                params: {
+                  type: 'ERC20',
+                  options: {
+                    address: TOKEN_ADDRESS,
+                    symbol: 'EXWIFE',
+                    decimals: 18,
+                    image: location.origin + '/img/exwife-32.png'
+                  }
+                }
+              });
+            } catch (err) { console.error(err); }
+          });
+        }
+      } catch (e) { console.error(e); }
+    })();
+  </script>
+
+  <!-- Your existing countdown + presale interaction scripts should remain below -->
+  <!-- <script src="./js/countdown.js"></script> -->
+  <!-- <script src="./js/presale.js"></script> -->
+  <!-- Your other scripts (presale.js, ethers.js, etc.) -->
+
+  <!-- Countdown -->
+  <script src="./countdown.js"></script>
+</body>
+</html>
+

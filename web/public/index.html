@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- EXWIFE v12.3 + UX POLISH v1: banner/countdown, progress numbers, toasts -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EXWIFE Presale (Sepolia) — v12.3</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/img/exwife-hero.png" />
+
+  <!-- Ethers UMD (single include; no async/defer) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <!-- ENV + minimal ABI -->
+  <script>
+    window.EXWIFE_ENV = {
+      network: 'sepolia',
+      rpc: 'https://ethereum-sepolia.publicnode.com',
+      presale: '0xdf2740dd8530c7B9F090269577112874b91D550C',
+      token:   '0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07',
+      symbol:  'EXWIFE',
+      goalEth: 1200
+    };
+    window.GOAL_ETH = 1200;
+    window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+
+    // Minimal ABI (reads + buy); include events to avoid unknown-fragment warnings
+    window.PRESALE_ABI_MIN = [
+      "function paused() view returns (bool)",
+      "function totalRaisedWei() view returns (uint256)",
+      "function weiRaised() view returns (uint256)",
+      "function buy() payable",
+      "event Paused(address indexed account)",
+      "event Unpaused(address indexed account)"
+    ];
+  </script>
+
+  <!-- Safe subscription shim: skip subscribing to missing events -->
+  <script>
+    (function(){
+      if (!window.ethers || !ethers.Contract) return;
+      const _on = ethers.Contract.prototype.on;
+      ethers.Contract.prototype.on = function(event, listener) {
+        try {
+          if (typeof event === 'string' && this.interface && !this.interface.getEvent(event)) {
+            console.warn('[EXWIFE] Skipping subscription to missing event:', event);
+            return this;
+          }
+        } catch (e) {
+          console.warn('[EXWIFE] Event check failed, skipping:', event, e);
+          return this;
+        }
+        return _on.call(this, event, listener);
+      };
+    })();
+  </script>
+
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; background:#0e0f12; color:#e7e7ea; }
+    .wrap { max-width:680px; margin:40px auto; padding:0 16px; }
+    .card { background:#141417; border:1px solid #222; border-radius:14px; padding:18px; }
+    .row { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .pill { background:#1c1d22; border:1px solid #2a2b31; padding:6px 10px; border-radius:999px; }
+    .btn { background:#2d6cdf; border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .progress { width:100%; height:14px; background:#1a1b20; border:1px solid #2a2b31; border-radius:10px; overflow:hidden; margin-top:8px; }
+    .bar { height:100%; width:2%; background:#22c55e; transition: width .6s ease; }
+    code { background:#101115; border:1px solid #222; padding:2px 6px; border-radius:8px; }
+    .muted { opacity:.85; }
+    a { color:#9bbcff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    input::placeholder { color:#9aa; }
+
+    /* === UX POLISH v1: banner + progress numbers + toasts === */
+    .banner {
+      display:flex; gap:.5rem; align-items:center; justify-content:center;
+      padding:.6rem .9rem; margin:12px auto 14px; max-width:980px;
+      background:#111; color:#fff; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+      font-weight:600;
+    }
+    .banner .countdown { opacity:.9; font-weight:500; }
+
+    .progress-wrap { max-width:900px; margin:10px auto 0; }
+    .progress-head { display:flex; justify-content:space-between; margin-bottom:.35rem; font-weight:600; }
+    .progress-outer {
+      width:100%; height:14px; background:#1a1b20; border:1px solid #2a2b31; border-radius:999px; overflow:hidden;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.08);
+    }
+    .progress-inner { height:100%; width:0%; background:linear-gradient(90deg, #5ac8fa, #34c759, #ffd60a); transition:width .35s ease-in-out; }
+
+    .toast-stack {
+      position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; z-index:9999;
+    }
+    .toast {
+      min-width:260px; max-width:360px; padding:.75rem .9rem; border-radius:12px; color:#fff;
+      background:#333; box-shadow:0 10px 24px rgba(0,0,0,.25); font-weight:600;
+    }
+    .toast.ok { background:#2e7d32; }
+    .toast.err { background:#c62828; }
+    .toast.info { background:#2c3e50; }
+    .toast .sub { display:block; font-weight:500; opacity:.9; margin-top:.15rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <header style="max-width:980px;margin:24px auto 6px;padding:0 12px;text-align:center">
+    <img
+      src="/img/exwife-hero.png"
+      alt="EXWIFE Token"
+      loading="lazy"
+      style="max-width:100%;height:auto;border-radius:16px;display:inline-block;box-shadow:0 6px 24px rgba(0,0,0,.08)"
+    />
+    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Sepolia)</h1>
+    <p style="margin:0;font-size:16px;opacity:.8">Goal: 1200 ETH • Safe, read-only UI until you connect</p>
+  </header>
+
+  <!-- Live banner + countdown -->
+  <div id="presaleBanner" class="banner" role="status" aria-live="polite">
+    <strong>Presale v3 live until Oct 12</strong>
+    <span id="countdown" class="countdown">— calculating…</span>
+  </div>
+
+  <div class="wrap">
+    <h1 style="margin:0 0 6px;">EXWIFE Presale <span class="muted">(Sepolia)</span></h1>
+    <div class="muted" style="margin-bottom:14px;">Goal: <strong id="goal-a">1200</strong> ETH</div>
+
+    <div class="card">
+      <div class="row">
+        <div class="pill" id="status">Ready</div>
+        <div class="pill" id="netPill" style="background:#3f3f46;border-color:#52525b">No Wallet</div>
+        <div class="row" style="gap:8px;">
+          <button class="btn" id="connectBtn" style="background:#475569">Connect</button>
+
+          <div style="display:flex;gap:8px;align-items:center;background:#1c1d22;border:1px solid #2a2b31;border-radius:10px;padding:6px 8px;">
+            <span style="opacity:.8">Amount</span>
+            <input id="buyAmount" inputmode="decimal" placeholder="0.01" value="0.01"
+                   style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" />
+            <span style="opacity:.8">ETH</span>
+          </div>
+
+          <button class="btn" id="buyBtn">Buy 0.01 ETH</button>
+          <button class="btn" id="refreshBtn" style="background:#374151">Refresh</button>
+          <a id="txLink" class="pill" href="#" target="_blank" style="display:none;">View tx</a>
+        </div>
+      </div>
+
+      <!-- Progress numbers + improved bar (keeps legacy IDs for compatibility) -->
+      <div style="margin-top:14px;">
+        <div class="progress-head">
+          <span>Raised</span>
+          <span id="progressNumbers">0.000 / 1200 ETH (0.00%)</span>
+        </div>
+        <div class="progress-outer" aria-label="Presale progress">
+          <div id="progressBar" class="progress-inner" style="width:0%"></div>
+        </div>
+
+        <!-- legacy display retained so existing code still paints -->
+        <div style="margin-top:10px">Raised: <strong id="raised">0.0000</strong> / <span id="goal-b">1200</span> ETH</div>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+      </div>
+
+      <div class="muted" style="margin-top:12px; word-break:break-all;">
+        Presale: <code id="addr"></code>
+        <div style="margin-top:6px;font-size:14px">
+          <a id="scanLink" href="#" target="_blank" rel="noopener">View on Etherscan</a>
+          <button id="copyBtn" style="margin-left:8px;padding:4px 8px;border:1px solid #2a2b31;border-radius:8px;background:#1c1d22;color:#e7e7ea;cursor:pointer">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container (notifications) -->
+  <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Core logic -->
+  <script>
+    // --- Resilient read-only provider with auto-fallbacks ---
+    const RPCS = [
+      (window.EXWIFE_ENV && window.EXWIFE_ENV.rpc) || '',
+      'https://ethereum-sepolia.publicnode.com',
+      'https://eth-sepolia.public.blastapi.io',
+      'https://1rpc.io/sepolia'
+    ].filter(Boolean);
+
+    let __RO_PROVIDER = null;
+    async function getRO() {
+      if (__RO_PROVIDER) return __RO_PROVIDER;
+      for (const url of RPCS) {
+        try {
+          const p = new ethers.JsonRpcProvider(url);
+          const ok = await Promise.race([
+            p.getBlockNumber(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('RPC timeout')), 2500))
+          ]);
+          if (typeof ok === 'number') { __RO_PROVIDER = p; return __RO_PROVIDER; }
+        } catch {}
+      }
+      throw new Error('No working RPC endpoint');
+    }
+
+    // --- UI helpers ---
+    window.EXWIFE_STATE = window.EXWIFE_STATE || { paused: false };
+    const el = (id) => document.getElementById(id);
+
+    function setStatus(msg){ const e = el('status'); if (e) e.textContent = msg; }
+
+    // Toasts
+    function showToast(msg, sub = '', type = 'info', timeoutMs = 4200) {
+      const stack = document.getElementById('toastStack');
+      if (!stack) return;
+      const item = document.createElement('div');
+      item.className = `toast ${type}`;
+      item.innerHTML = `${escapeHTML(msg)}${sub ? `<span class="sub">${escapeHTML(sub)}</span>` : ''}`;
+      stack.appendChild(item);
+      setTimeout(() => { item.style.opacity = '0'; item.style.transform = 'translateY(6px)'; }, timeoutMs - 350);
+      setTimeout(() => { stack.removeChild(item); }, timeoutMs);
+    }
+    function escapeHTML(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]))}
+
+    function updateUI(raisedEth){
+      const goal = Number(window.GOAL_ETH || window.EXWIFE_ENV?.goalEth || 1200);
+
+      // numbers
+      el('goal-a') && (el('goal-a').textContent = goal);
+      el('goal-b') && (el('goal-b').textContent = goal);
+      el('raised') && (el('raised').textContent = Math.max(0, raisedEth).toFixed(4));
+
+      // modern progress
+      const pct = Math.max(0, Math.min(100, (raisedEth / (goal || 1)) * 100));
+      const barModern = el('progressBar');
+      const lblModern = el('progressNumbers');
+      if (barModern) barModern.style.width = pct.toFixed(2) + '%';
+      if (lblModern) lblModern.textContent = `${raisedEth.toFixed(3)} / ${goal} ETH (${pct.toFixed(2)}%)`;
+
+      // legacy bar (kept)
+      const pctLegacy = Math.max(1.5, Math.min(100, pct));
+      const barLegacy = el('bar');
+      if (barLegacy) barLegacy.style.width = pctLegacy + '%';
+
+      // stash for others if needed
+      window.__EXWIFE_LAST_RAISED_ETH = raisedEth;
+    }
+
+    // --- Network pill updater; disables Buy if wrong network ---
+    async function updateNetworkPill() {
+      const pill = el('netPill');
+      const buyBtn = el('buyBtn');
+      if (!pill) return;
+
+      let onSepolia = false;
+
+      if (!window.ethereum) {
+        pill.textContent = 'No Wallet';
+        pill.style.background = '#3f3f46';
+        pill.style.borderColor = '#52525b';
+      } else {
+        try {
+          const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+          onSepolia = (chainIdHex?.toLowerCase() === '0xaa36a7'); // 11155111
+          if (onSepolia) {
+            pill.textContent = 'Sepolia';
+            pill.style.background = '#134e4a';
+            pill.style.borderColor = '#14532d';
+          } else {
+            pill.textContent = 'Wrong Network';
+            pill.style.background = '#7f1d1d';
+            pill.style.borderColor = '#991b1b';
+          }
+        } catch {
+          pill.textContent = 'Network ?';
+          pill.style.background = '#3f3f46';
+          pill.style.borderColor = '#52525b';
+        }
+      }
+
+      // Disable BUY if paused OR wrong network
+      if (buyBtn) buyBtn.disabled = !!(window.EXWIFE_STATE.paused || !onSepolia);
+    }
+
+    // --- Public: refresh raised with fallbacks ---
+    async function EXWIFE_refreshRaised(){
+      try {
+        const addr = window.PRESALE_ADDRESS, abi = window.PRESALE_ABI_MIN;
+        if (!addr) return 0;
+        const ro = await getRO();
+        const presale = new ethers.Contract(addr, abi, ro);
+
+        let w;
+        if (typeof presale.totalRaisedWei === 'function') {
+          try { w = await presale.totalRaisedWei(); } catch {}
+        }
+        if ((!w || w === 0n) && typeof presale.weiRaised === 'function') {
+          try { w = await presale.weiRaised(); } catch {}
+        }
+        if (!w || w === 0n) {
+          try { w = await ro.getBalance(addr); } catch {}
+        }
+
+        const e = Number(ethers.formatEther(w || 0n));
+        updateUI(e);
+        return e;
+      } catch (err) {
+        console.warn("[EXWIFE] EXWIFE_refreshRaised() failed:", err);
+        return 0;
+      }
+    }
+    window.EXWIFE_refreshRaised = EXWIFE_refreshRaised;
+
+    // --- Buy flow with custom amount; respects paused() and network + TOASTS ---
+    async function buyInline(){
+      try {
+        setStatus('Connecting…');
+        if (!window.ethereum) { showToast("No wallet provider found.", "", "err"); setStatus('No wallet'); return; }
+
+        // Prefer MetaMask if multiple providers are injected
+        const mm = (window.ethereum.providers || []).find(p => p.isMetaMask)
+                  || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+
+        await mm.request({ method: 'eth_requestAccounts' });
+
+        const provider = new ethers.BrowserProvider(mm);
+
+        // Enforce Sepolia (11155111)
+        const net = await provider.getNetwork();
+        if (net.chainId?.toString() !== '11155111') {
+          try {
+            await mm.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0xaa36a7' }], // Sepolia
+            });
+          } catch (e) {
+            if (e?.code === 4902) {
+              await mm.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0xaa36a7',
+                  chainName: 'Sepolia',
+                  nativeCurrency: { name: 'Sepolia ETH', symbol: 'SEP', decimals: 18 },
+                  rpcUrls: ['https://ethereum-sepolia.publicnode.com'],
+                  blockExplorerUrls: ['https://sepolia.etherscan.io/'],
+                }]
+              });
+            } else {
+              showToast('Please switch to Sepolia and try again.', '', 'err', 5200);
+              setStatus('Wrong network');
+              return;
+            }
+          }
+          // Reflect new network in UI
+          await updateNetworkPill();
+        }
+
+        const signer  = await provider.getSigner();
+        const addr    = window.PRESALE_ADDRESS;
+        const abi     = window.PRESALE_ABI_MIN;
+        const presale = new ethers.Contract(addr, abi, signer);
+
+        // Amount + validation
+        const raw = (el('buyAmount')?.value || '').trim();
+        const amt = Number(raw);
+        const MIN = 0.0001, MAX = 5; // tweak as needed
+        if (!isFinite(amt) || amt <= 0) { showToast('Enter an amount in ETH.', '', 'err'); setStatus('Ready'); return; }
+        if (amt < MIN)                  { showToast(`Minimum is ${MIN} ETH`, '', 'err');  setStatus('Ready'); return; }
+        if (amt > MAX)                  { showToast(`Maximum is ${MAX} ETH`, '', 'err');  setStatus('Ready'); return; }
+
+        setStatus('Submitting tx…');
+        showToast('Submitting transaction…', 'Confirm in your wallet', 'info', 3000);
+        const tx = await presale.buy({ value: ethers.parseEther(String(amt)) });
+        const link = el('txLink');
+        if (link) { link.href = `https://sepolia.etherscan.io/tx/${tx.hash}`; link.style.display=''; }
+        showToast('Buy submitted!', tx.hash.slice(0,10) + '…' + tx.hash.slice(-8), 'ok', 5200);
+        await tx.wait();
+        setStatus('✅ Confirmed');
+        await window.EXWIFE_refreshRaised();
+
+      } catch (e) {
+        console.error('buy() failed:', e);
+        setStatus('❌ Error');
+        const msg = (e?.reason || e?.data?.message || e?.message || String(e));
+        if (/insufficient funds/i.test(msg)) {
+          showToast('Insufficient Sepolia ETH', 'Top up for gas/amount', 'err', 6000);
+        } else if (/user rejected/i.test(msg)) {
+          showToast('Transaction rejected', '', 'err', 4200);
+        } else {
+          showToast('Buy failed', msg, 'err', 6500);
+        }
+      }
+    }
+
+    // --- Paused pill updater; combines with network pill to control BUY ---
+    async function updatePausedPill(){
+      try {
+        const ro = await getRO();
+        const c  = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
+        let isPaused = false; try { isPaused = await c.paused(); } catch {}
+        window.EXWIFE_STATE.paused = isPaused;
+        setStatus(isPaused ? 'Paused' : 'Ready');
+        await updateNetworkPill();
+      } catch {}
+    }
+
+    // Countdown banner (America/Chicago close time)
+    const PRESALE_CLOSE_UNIX = Math.floor(new Date('2025-10-12T23:59:59-05:00').getTime() / 1000);
+    (function bannerCountdown(){
+      const countdownEl = document.getElementById('countdown');
+      if (!countdownEl) return;
+      function render() {
+        const now = Math.floor(Date.now() / 1000);
+        let diff = PRESALE_CLOSE_UNIX - now;
+        if (diff <= 0) { countdownEl.textContent = '— closed'; return; }
+        const d = Math.floor(diff / 86400); diff %= 86400;
+        const h = Math.floor(diff / 3600);  diff %= 3600;
+        const m = Math.floor(diff / 60);    const s = diff % 60;
+        countdownEl.textContent = `— ${d}d ${h}h ${m}m ${s}s left`;
+      }
+      render();
+      setInterval(render, 1000);
+    })();
+
+    // Optional: RPC/wallet helpful toasts based on the net pill
+    (function rpcGuard(){
+      const pill = document.getElementById('netPill');
+      if (!pill) return;
+      const check = () => {
+        const t = (pill.textContent || '').trim();
+        if (t.includes('No Wallet')) {
+          showToast('No wallet detected', 'Install or unlock MetaMask/Frame', 'info', 5000);
+        } else if (t.includes('Wrong')) {
+          showToast('Wrong network', 'Please switch to Sepolia', 'err', 5000);
+        }
+      };
+      setInterval(check, 8000);
+      setTimeout(check, 1500);
+    })();
+
+    // --- Boot ---
+    (function boot(){
+      const addr = window.PRESALE_ADDRESS || '(missing)';
+
+      // Static bits
+      el('addr') && (el('addr').textContent = addr);
+      el('scanLink') && (el('scanLink').href = `https://sepolia.etherscan.io/address/${addr}`);
+
+      // Listeners
+      el('copyBtn')?.addEventListener('click', () => navigator.clipboard.writeText(addr));
+      el('refreshBtn')?.addEventListener('click', () => EXWIFE_refreshRaised());
+      el('connectBtn')?.addEventListener('click', async () => {
+        if (!window.ethereum) { showToast('Install MetaMask to connect.', '', 'info'); return; }
+        const mm = (window.ethereum.providers || []).find(p => p.isMetaMask)
+                  || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+        await mm.request({ method: 'eth_requestAccounts' });
+        setStatus('Wallet connected');
+        updateNetworkPill();
+      });
+      el('buyBtn')?.addEventListener('click', buyInline);
+
+      // Keep Buy label in sync with amount
+      const amt = el('buyAmount'); const buy = el('buyBtn');
+      if (amt && buy) {
+        const sync = () => { buy.textContent = `Buy ${amt.value || '0.01'} ETH`; };
+        amt.addEventListener('input', sync); sync();
+      }
+
+      // React to wallet changes
+      if (window.ethereum?.on) {
+        window.ethereum.on('chainChanged', () => updateNetworkPill());
+        window.ethereum.on('accountsChanged', () => updateNetworkPill());
+      }
+
+      // Initial paint + auto-refresh + initial pills
+      const tick = async () => { try { await window.EXWIFE_refreshRaised(); } catch (e) { console.warn('tick failed:', e); } };
+      tick();
+      updatePausedPill();
+      updateNetworkPill();
+      window.EXWIFE_AUTO = window.EXWIFE_AUTO || {};
+      clearInterval(window.EXWIFE_AUTO.raised);
+      window.EXWIFE_AUTO.raised = setInterval(tick, 20000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+      console.log('EXWIFE v12.3 loaded (goal:', window.GOAL_ETH, 'ETH)');
+    })();
+  </script>
+<script>
+/* EXWIFE ensure-UI: create banner/progress if missing (safe, idempotent) */
+(() => {
+  // Banner + countdown
+  if (!document.getElementById('presaleBanner')) {
+    const hdr = document.querySelector('header') || document.body;
+    const div = document.createElement('div');
+    div.id = 'presaleBanner';
+    div.setAttribute('role', 'status');
+    div.setAttribute('aria-live', 'polite');
+    div.style.cssText = 'display:flex;gap:.5rem;align-items:center;justify-content:center;padding:.6rem .9rem;margin:12px auto 14px;max-width:980px;background:#111;color:#fff;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.25);font-weight:600;';
+    div.innerHTML = `<strong>Presale v3 live until Oct 12</strong> <span id="countdown" style="opacity:.9;font-weight:500">— calculating…</span>`;
+    hdr.insertAdjacentElement('afterend', div);
+    const PRESALE_CLOSE_UNIX = Math.floor(new Date('2025-10-12T23:59:59-05:00').getTime()/1000);
+    const render = () => {
+      const el = document.getElementById('countdown'); if (!el) return;
+      const now = Math.floor(Date.now()/1000);
+      let diff = PRESALE_CLOSE_UNIX - now;
+      if (diff <= 0) { el.textContent = '— closed'; return; }
+      const d = Math.floor(diff/86400); diff %= 86400;
+      const h = Math.floor(diff/3600);  diff %= 3600;
+      const m = Math.floor(diff/60);    const s = diff % 60;
+      el.textContent = `— ${d}d ${h}h ${m}m ${s}s left`;
+    };
+    render(); setInterval(render, 1000);
+  }
+
+  // Progress numbers + bar
+  if (!document.getElementById('progressNumbers')) {
+    const card = document.querySelector('.card') || document.querySelector('.wrap') || document.body;
+    const wrap = document.createElement('div');
+    wrap.style.marginTop = '14px';
+    wrap.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:.35rem;font-weight:600;">
+        <span>Raised</span>
+        <span id="progressNumbers">0.000 / ${(window.GOAL_ETH ?? window.EXWIFE_ENV?.goalEth ?? 1200)} ETH (0.00%)</span>
+      </div>
+      <div style="width:100%;height:14px;background:#1a1b20;border:1px solid #2a2b31;border-radius:999px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.08);" aria-label="Presale progress">
+        <div id="progressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#5ac8fa,#34c759,#ffd60a);transition:width .35s ease-in-out;"></div>
+      </div>`;
+    const legacy = document.getElementById('raised')?.closest('div') || null;
+    if (legacy?.parentElement) legacy.parentElement.insertBefore(wrap, legacy.parentElement.firstChild);
+    else card.appendChild(wrap);
+  }
+
+  // Paint progress using your existing refresh
+  (async () => {
+    const goal = Number(window.GOAL_ETH || window.EXWIFE_ENV?.goalEth || 1200);
+    const paint = (raised) => {
+      const pct = Math.max(0, Math.min(100, (raised / (goal || 1)) * 100));
+      const bar = document.getElementById('progressBar');
+      const lbl = document.getElementById('progressNumbers');
+      if (bar) bar.style.width = pct.toFixed(2) + '%';
+      if (lbl) lbl.textContent = `${Number(raised||0).toFixed(3)} / ${goal} ETH (${pct.toFixed(2)}%)`;
+    };
+    const v = await (window.EXWIFE_refreshRaised?.() ?? Promise.resolve(0));
+    paint(typeof v === 'number' ? v : (window.__EXWIFE_LAST_RAISED_ETH ?? 0));
+    setInterval(async () => {
+      const x = await (window.EXWIFE_refreshRaised?.() ?? Promise.resolve(0));
+      paint(typeof x === 'number' ? x : (window.__EXWIFE_LAST_RAISED_ETH ?? 0));
+    }, 20000);
+  })();
+})();
+</script>
+<script>
+/* EXWIFE Owner Panel (self-injects; owner-only) */
+(() => {
+const OWNER_FALLBACK = '0x4799d7Bf70371A396E3415336DD821586A72D37e'.toLowerCase();
+
+  try {
+    if (Array.isArray(window.PRESALE_ABI_MIN)) {
+      ['function owner() view returns (address)','function pause()','function unpause()']
+        .forEach(f => { if (!window.PRESALE_ABI_MIN.includes(f)) window.PRESALE_ABI_MIN.push(f); });
+    }
+  } catch {}
+
+  function ensureToastStack(){
+    if (document.getElementById('toastStack')) return;
+    const d = document.createElement('div');
+    d.id='toastStack';
+    d.style.cssText='position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:8px;z-index:9999';
+    document.body.appendChild(d);
+  }
+  function toast(msg, kind='info'){
+    ensureToastStack();
+    const el=document.createElement('div');
+    el.role='status';
+    el.style.cssText='min-width:240px;max-width:420px;padding:10px 12px;border-radius:10px;border:1px solid #2a2b31;background:#111;box-shadow:0 8px 24px rgba(0,0,0,.35);font-weight:600';
+    el.textContent=msg;
+    if (kind==='ok')  el.style.background='#0b3';
+    if (kind==='err') el.style.background='#922';
+    document.getElementById('toastStack').appendChild(el);
+    setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 3500);
+  }
+
+  function injectOwnerPanel(){
+    if (document.getElementById('ownerPanel')) return;
+    const row = document.querySelector('.card .row:last-of-type') || document.querySelector('.row');
+    if (!row) return;
+    const btn = document.createElement('button');
+    btn.id='ownerPanel';
+    btn.className='btn';
+    btn.style.background='#7c3aed';
+    btn.style.display='none';
+    btn.textContent='Owner: Pause/Unpause';
+    row.appendChild(btn);
+  }
+  injectOwnerPanel();
+
+  async function getContractOwner(ro){
+    try {
+      const c = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
+      if (typeof c.owner === 'function') {
+        const o = await c.owner();
+        if (o && /^0x[a-fA-F0-9]{40}$/.test(o)) return o.toLowerCase();
+      }
+    } catch {}
+    const envOwner = (window.EXWIFE_ENV && window.EXWIFE_ENV.owner) ? String(window.EXWIFE_ENV.owner).toLowerCase() : '';
+    return envOwner || OWNER_FALLBACK || '';
+  }
+
+  async function maybeShowOwnerPanel(){
+    try {
+      if (!window.ethereum) return;
+      const ro = await (window.getRO ? window.getRO() : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc));
+      const onChainOwner = await getContractOwner(ro);
+      const mm = (window.ethereum.providers || []).find(p=>p.isMetaMask) || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+      const provider = new ethers.BrowserProvider(mm);
+      const signer = await provider.getSigner();
+      const me = (await signer.getAddress()).toLowerCase();
+      const isOwner = onChainOwner && me === onChainOwner;
+      const panel = document.getElementById('ownerPanel');
+      if (panel) panel.style.display = isOwner ? '' : 'none';
+      if (!isOwner) return;
+
+      panel.onclick = async () => {
+        try {
+          const net = await provider.getNetwork();
+          if (net.chainId?.toString() !== '11155111') { toast('Switch to Sepolia first','err'); return; }
+          const c = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, await provider.getSigner());
+          let isPaused=false; try { isPaused = await c.paused(); } catch {}
+          toast(isPaused ? 'Unpausing…' : 'Pausing…');
+          const fn = isPaused ? (c.unpause ?? c['unpause']) : (c.pause ?? c['pause']);
+          if (!fn) { toast('pause/unpause not in ABI or contract','err'); return; }
+          const tx = await fn();
+          toast(`Tx: ${tx.hash.slice(0,10)}…`);
+          await tx.wait();
+          toast(isPaused ? '✅ Unpaused' : '✅ Paused','ok');
+          try { await window.updatePausedPill?.(); } catch {}
+          try { await window.updateNetworkPill?.(); } catch {}
+          try { await window.EXWIFE_refreshRaised?.(); } catch {}
+        } catch(e){ console.error(e); toast(e?.reason || e?.message || 'Owner action failed','err'); }
+      };
+    } catch {}
+  }
+
+  function hookWalletEvents(){
+    if (window.ethereum?.on) {
+      window.ethereum.on('accountsChanged', () => maybeShowOwnerPanel());
+      window.ethereum.on('chainChanged',   () => maybeShowOwnerPanel());
+    }
+  }
+
+  setTimeout(() => { maybeShowOwnerPanel(); hookWalletEvents(); }, 600);
+})();
+</script>
+<!-- EXWIFE Owner Panel (self-injects; owner-only) -->
+<script>
+(() => {
+  const OWNER_FALLBACK = '0x4799d7Bf70371A396E3415336DD821586A72D37e'.toLowerCase();
+
+  try {
+    if (Array.isArray(window.PRESALE_ABI_MIN)) {
+      ['function owner() view returns (address)','function pause()','function unpause()']
+        .forEach(f => { if (!window.PRESALE_ABI_MIN.includes(f)) window.PRESALE_ABI_MIN.push(f); });
+    }
+  } catch {}
+
+  function ensureToastStack(){
+    if (document.getElementById('toastStack')) return;
+    const d = document.createElement('div');
+    d.id='toastStack';
+    d.style.cssText='position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:8px;z-index:9999';
+    document.body.appendChild(d);
+  }
+  function toast(msg, kind='info'){
+    ensureToastStack();
+    const el=document.createElement('div');
+    el.role='status';
+    el.style.cssText='min-width:240px;max-width:420px;padding:10px 12px;border-radius:10px;border:1px solid #2a2b31;background:#111;box-shadow:0 8px 24px rgba(0,0,0,.35);font-weight:600';
+    el.textContent=msg;
+    if (kind==='ok')  el.style.background='#0b3';
+    if (kind==='err') el.style.background='#922';
+    document.getElementById('toastStack').appendChild(el);
+    setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 3500);
+  }
+
+  function injectOwnerPanel(){
+    if (document.getElementById('ownerPanel')) return;
+    const row = document.querySelector('.card .row:last-of-type') || document.querySelector('.row');
+    if (!row) return;
+    const btn = document.createElement('button');
+    btn.id='ownerPanel';
+    btn.className='btn';
+    btn.style.background='#7c3aed';
+    btn.style.display='none';
+    btn.textContent='Owner: Pause/Unpause';
+    row.appendChild(btn);
+  }
+  injectOwnerPanel();
+
+  async function getContractOwner(ro){
+    try {
+      const c = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
+      if (typeof c.owner === 'function') {
+        const o = await c.owner();
+        if (o && /^0x[a-fA-F0-9]{40}$/.test(o)) return o.toLowerCase();
+      }
+    } catch {}
+    const envOwner = (window.EXWIFE_ENV && window.EXWIFE_ENV.owner) ? String(window.EXWIFE_ENV.owner).toLowerCase() : '';
+    return envOwner || OWNER_FALLBACK || '';
+  }
+
+  async function maybeShowOwnerPanel(){
+    try {
+      if (!window.ethereum) return;
+      const ro = await (window.getRO ? window.getRO() : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc));
+      const onChainOwner = await getContractOwner(ro);
+      const mm = (window.ethereum.providers || []).find(p=>p.isMetaMask) || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+      const provider = new ethers.BrowserProvider(mm);
+      const signer = await provider.getSigner();
+      const me = (await signer.getAddress()).toLowerCase();
+      const isOwner = onChainOwner && me === onChainOwner;
+      const panel = document.getElementById('ownerPanel');
+      if (panel) panel.style.display = isOwner ? '' : 'none';
+      if (!isOwner) return;
+
+      panel.onclick = async () => {
+        try {
+          const net = await provider.getNetwork();
+          if (net.chainId?.toString() !== '11155111') { toast('Switch to Sepolia first','err'); return; }
+          const c = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, await provider.getSigner());
+          let isPaused=false; try { isPaused = await c.paused(); } catch {}
+          toast(isPaused ? 'Unpausing…' : 'Pausing…');
+          const fn = isPaused ? (c.unpause ?? c['unpause']) : (c.pause ?? c['pause']);
+          if (!fn) { toast('pause/unpause not in ABI or contract','err'); return; }
+          const tx = await fn();
+          toast(`Tx: ${tx.hash.slice(0,10)}…`);
+          await tx.wait();
+          toast(isPaused ? '✅ Unpaused' : '✅ Paused','ok');
+          try { await window.updatePausedPill?.(); } catch {}
+          try { await window.updateNetworkPill?.(); } catch {}
+          try { await window.EXWIFE_refreshRaised?.(); } catch {}
+        } catch(e){ console.error(e); toast(e?.reason || e?.message || 'Owner action failed','err'); }
+      };
+    } catch {}
+  }
+
+  function hookWalletEvents(){
+    if (window.ethereum?.on) {
+      window.ethereum.on('accountsChanged', () => maybeShowOwnerPanel());
+      window.ethereum.on('chainChanged',   () => maybeShowOwnerPanel());
+    }
+  }
+
+  setTimeout(() => { maybeShowOwnerPanel(); hookWalletEvents(); }, 600);
+})();
+</script>
+
+</body>
+</html>
+

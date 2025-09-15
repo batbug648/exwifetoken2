@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>EXWIFE — Meme Coin Presale (Aug 22)</title>
+  <link rel="canonical" href="https://exwifetoken.com/" />
+
+  <!-- Fonts + Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+
+  <!-- ==== SEO / Preview Metadata ==== -->
+  <meta name="description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://exwifetoken.com/" />
+  <meta property="og:title" content="EXWIFE — Meme Coin Presale (Aug 22)" />
+  <meta property="og:description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta property="og:image" content="https://exwifetoken.com/img/exwife-hero.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="EXWIFE — Meme Coin Presale (Aug 22)" />
+  <meta name="twitter:description" content="EXWIFE token. Presale opens Aug 22. 10B supply. She took half—now she wants the rest. Join the EXWIFE presale." />
+  <meta name="twitter:image" content="https://exwifetoken.com/img/exwife-hero.png" />
+
+  <link rel="icon" href="/favicon.ico" />
+
+  <style>
+    /* Minimal fallback for .banner */
+    .banner {
+      width: 100%;
+      height: 280px;
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        url("/img/exwife-hero.png") center/cover no-repeat;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .muted { color: var(--gray); }
+    .countdown { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
+    .cd-box { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); padding:10px 12px; border-radius:12px; }
+    .cd-box span { font-size:22px; font-weight:800; display:block; }
+    .cd-box label { font-size:12px; color: var(--gray); text-transform:uppercase; letter-spacing:0.06em; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HERO ===== -->
+  <div class="container">
+    <header class="mb-8" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div class="exwife-pill">EXWIFE • Presale</div>
+      <a href="#presale" class="exwife-btn">Enter Presale</a>
+    </header>
+
+    <section class="grid grid-2" id="hero">
+      <div>
+        <h1>The <span class="text-pink">EX-WIFE</span> is here.</h1>
+        <p class="text-gray mt-4" style="font-size:18px;">
+          10B supply. Aug 20 presale. Claim your slice before the divorce settles.
+        </p>
+
+        <div class="mt-6">
+          <a href="#presale" class="exwife-btn">Buy in Presale</a>
+          <a href="#how" class="exwife-btn" style="margin-left:8px;opacity:.9;">How it works</a>
+        </div>
+
+        <!-- Countdown -->
+        <div class="exwife-card mt-6">
+          <h3>Presale Countdown</h3>
+          <div id="countdown" class="countdown">
+            <div class="cd-box"><span id="cd-days">--</span><label>Days</label></div>
+            <div class="cd-box"><span id="cd-hours">--</span><label>Hours</label></div>
+            <div class="cd-box"><span id="cd-mins">--</span><label>Mins</label></div>
+            <div class="cd-box"><span id="cd-secs">--</span><label>Secs</label></div>
+          </div>
+          <div id="cd-status" class="muted" style="margin-top:8px">Loading timer…</div>
+        </div>
+      </div>
+
+      <div class="exwife-card">
+        <!-- Banner image / hero art -->
+      <img src="./img/exwife-hero.png" alt="EXWIFE" class="hero" />
+      </div>
+    </section>
+  </div>
+
+<!-- ===== Presale Interaction Test ===== -->
+<section id="presale-test" class="max-w-xl mx-auto" style="margin:2rem auto; padding:1rem;">
+  <div style="background:#141417; border:1px solid #222; border-radius:16px; padding:20px;">
+    <h2 style="margin:0 0 8px;">Presale Interaction Test (Sepolia)</h2>
+    <p style="opacity:.8; margin:0 0 12px;">
+      Connect your wallet, then try a small test buy (0.01 ETH) against the <strong>Test Presale</strong>.
+    </p>
+
+    <button id="btn-connect" style="padding:10px 14px; border-radius:10px; border:1px solid #333; background:#1f1f22; cursor:pointer;">
+      Connect Wallet
+    </button>
+
+    <div id="acct" style="margin-top:10px; font-family:monospace;"></div>
+    <div id="bal" style="margin-top:4px; font-family:monospace;"></div>
+
+    <div style="display:flex; gap:8px; margin-top:16px; align-items:center;">
+      <button id="btn-buy" disabled style="padding:10px 14px; border-radius:10px; border:1px solid #333; background:#1f1f22; cursor:pointer;">
+        Test Buy 0.01 ETH
+      </button>
+      <input id="custom-eth" type="number" step="0.001" min="0.001" placeholder="Custom ETH (e.g. 0.02)"
+             style="flex:1; padding:10px; border-radius:10px; border:1px solid #333; background:#0a0a0b; color:#fff;">
+      <button id="btn-buy-custom" disabled style="padding:10px 14px; border-radius:10px; border:1px solid #333; background:#1f1f22; cursor:pointer;">
+        Buy Custom
+      </button>
+    </div>
+
+    <pre id="log" style="margin-top:16px; background:#0a0a0b; border:1px solid #222; border-radius:12px; padding:12px; overflow:auto; max-height:220px;"></pre>
+  </div>
+</section>
+
+<!-- ===== PRESALE (polished, upgraded) ===== -->
+<section id="presale" class="container" style="padding-top:20px; padding-bottom:60px">
+  <!-- Wallet / Controls -->
+  <div class="exwife-card" style="margin-bottom:16px;">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+      <div class="exwife-pill" id="status">Not connected</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        <button id="connect" class="exwife-btn">Connect Wallet</button>
+        <button id="refresh" class="exwife-btn" style="opacity:.95;">Refresh</button>
+        <button id="addTokenBtn" class="exwife-btn" style="opacity:.95;">Add EXWIFE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buy + Progress (keep your existing IDs so your scripts keep working) -->
+  <div class="exwife-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <h3 style="margin:0;">Buy EXWIFE</h3>
+      <span class="exwife-pill">Target: <strong style="margin-left:6px;color:var(--gold)">Goal</strong></span>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div>Raised: <b><span id="raisedEth">0</span> ETH</b></div>
+      <div>Goal: <b><span id="goalEth">0</span> ETH</b></div>
+      <div>Status: <b><span id="saleStatus">Loading…</span></b></div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress"><div class="fill" id="progressFill" style="width:0%;"></div></div>
+    <div class="muted" id="progressMsg" style="margin-top:8px"></div>
+
+    <!-- Buy Form -->
+    <div class="mt-6" style="display:grid;grid-template-columns:1fr auto;gap:12px;">
+      <input id="ethAmount" class="input" type="number" min="0.01" step="0.01" value="0.05" />
+      <button id="buy" class="exwife-btn">Send ETH</button>
+    </div>
+    <div id="buyMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <!-- Balances -->
+  <div class="exwife-card" style="margin-top:16px;">
+    <h3 style="margin:0 0 10px 0;">Your Balances</h3>
+    <div>ETH: <span id="ethBal">-</span></div>
+    <div>EXWIFE: <span id="tokBal">-</span></div>
+  </div>
+
+  <!-- Contract Addresses -->
+  <div class="exwife-card" style="margin-top:16px;">
+    <h3 style="margin:0 0 10px 0;">Contract Addresses</h3>
+    <div>
+      Token: <code id="tokenAddr"></code>
+      — <a id="tokenLink" class="exwife-pill" target="_blank" rel="noreferrer">View on Etherscan</a>
+    </div>
+    <div style="margin-top:6px;">
+      Presale: <code id="presaleAddr"></code>
+      — <a id="presaleLink" class="exwife-pill" target="_blank" rel="noreferrer">View on Etherscan</a>
+    </div>
+    <div class="muted" style="margin-top:6px;">Network: Sepolia</div>
+  </div>
+
+  <!-- Owner Controls (auto-hidden for non-owners; JS will toggle via presale.owner()) -->
+  <div id="ownerCard" class="exwife-card" style="margin-top:16px; display:none;">
+    <h3 style="margin:0 0 8px 0;">Owner Controls</h3>
+    <div class="muted" style="margin-bottom:8px">Visible only to the owner wallet</div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button id="pauseBtn" class="exwife-btn">Pause</button>
+      <button id="unpauseBtn" class="exwife-btn">Unpause</button>
+      <button id="finalizeBtn" class="exwife-btn">Finalize &amp; Sweep</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <label class="muted" for="airTo">Airdrop address</label><br/>
+      <input id="airTo" placeholder="0x..." style="width:100%;padding:10px;border-radius:10px;border:1px solid #333;background:#0f1117;color:inherit;font-family:monospace" />
+      <label class="muted" for="airAmt" style="display:block;margin-top:8px;">Amount (whole tokens)</label>
+      <input id="airAmt" type="number" step="any" placeholder="1000" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333;background:#0f1117;color:inherit" />
+      <button id="airBtn" class="exwife-btn" style="margin-top:10px;">Airdrop</button>
+    </div>
+
+    <div id="ownerStatus" class="muted" style="margin-top:8px"></div>
+  </div>
+</section>
+
+  <!-- ===== Scripts (put your existing logic here) ===== -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script> -->
+  <script>
+    // If you already define these globally elsewhere, remove this example.
+    // const TOKEN_ADDRESS = "0xYourToken";
+    // const PRESALE_ADDRESS = "0xYourPresale";
+
+    (function () {
+      try {
+        // Wire up Etherscan links if addresses exist
+        if (typeof TOKEN_ADDRESS !== 'undefined') {
+          const t = document.getElementById('tokenLink');
+          const ta = document.getElementById('tokenAddr');
+          if (t) t.href = `https://sepolia.etherscan.io/token/${TOKEN_ADDRESS}`;
+          if (ta) ta.textContent = TOKEN_ADDRESS;
+        }
+        if (typeof PRESALE_ADDRESS !== 'undefined') {
+          const p = document.getElementById('presaleLink');
+          const pa = document.getElementById('presaleAddr');
+          if (p) p.href = `https://sepolia.etherscan.io/address/${PRESALE_ADDRESS}`;
+          if (pa) pa.textContent = PRESALE_ADDRESS;
+        }
+
+        // Add EXWIFE to wallet
+        const addBtn = document.getElementById('addTokenBtn');
+        if (addBtn && window.ethereum && typeof TOKEN_ADDRESS !== 'undefined') {
+          addBtn.addEventListener('click', async () => {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_watchAsset',
+                params: {
+                  type: 'ERC20',
+                  options: {
+                    address: TOKEN_ADDRESS,
+                    symbol: 'EXWIFE',
+                    decimals: 18,
+                    image: location.origin + '/img/exwife-32.png'
+                  }
+                }
+              });
+            } catch (err) { console.error(err); }
+          });
+        }
+      } catch (e) { console.error(e); }
+    })();
+  </script>
+
+  <!-- Your existing countdown + presale interaction scripts should remain below -->
+  <!-- <script src="./js/countdown.js"></script> -->
+  <!-- <script src="./js/presale.js"></script> -->
+  <!-- Your other scripts (presale.js, ethers.js, etc.) -->
+
+  <!-- Countdown -->
+  <script src="./countdown.js"></script>
+<!-- Ethers v6 UMD -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.15.1/dist/ethers.umd.min.js"></script>
+
+<script> 
+(() => {
+  const { ethers } = window;
+        
+  // ===== Addresses =====
+  const TOKEN_ADDRESS   = "0x72E284f9F2cf9DEE3e60e78B1730c6037A1858D4";
+  const PRESALE_ADDRESS = "0xDb5a326Aa1d97165EE8d513c0BB544Ca14E72A31"; // Test presale
+      
+  const PRESALE_ABI = [
+    "function buy() payable",
+    "function minContribution() view returns (uint256)"
+  ];
+    
+  const els = {
+    connect:   document.getElementById("btn-connect"),
+    buy:       document.getElementById("btn-buy"),
+    buyCustom: document.getElementById("btn-buy-custom"),
+    customEth: document.getElementById("custom-eth"),
+    acct:      document.getElementById("acct"),
+    bal:       document.getElementById("bal"),
+    log:       document.getElementById("log"),
+  };
+      
+  let provider, signer, account;
+      
+  function log(msg) {
+    if (!els.log) return;
+    const text = typeof msg === "string" ? msg : JSON.stringify(msg, null, 2);
+    els.log.textContent += text + "\n";
+    els.log.scrollTop = els.log.scrollHeight;
+  }
+      
+  async function switchToSepoliaIfNeeded() {
+    try {
+      const net = await provider.getNetwork();
+      if (Number(net.chainId) !== 11155111) {
+        await provider.send("wallet_switchEthereumChain", [{ chainId: "0xaa36a7" }]);
+        log("Switched to Sepolia.");
+      }
+    } catch (err) {
+      log("⚠️ Please manually switch to Sepolia in MetaMask.");
+    }
+  }
+    
+  async function connect() {
+    if (!window.ethereum) {
+      log("❌ No wallet detected. Use Chrome with MetaMask.");
+      return;
+    }
+    try {
+      provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      await switchToSepoliaIfNeeded();
+      
+      const network = await provider.getNetwork();
+      log(`ℹ️ chainId: ${Number(network.chainId)} (Sepolia = 11155111)`);
+      
+      signer  = await provider.getSigner();
+      account = await signer.getAddress();  const balWei = await provider.getBalance(account);
+      const balEth = ethers.formatEther(balWei);
+      
+      els.acct.textContent = `Account: ${account}`;
+      els.bal.textContent  = `Sepolia ETH: ${balEth}`;
+      els.buy.disabled = false;
+      els.buyCustom.disabled = false;
+    
+      log("✅ Wallet connected.");
+    } catch (e) {
+      console.error(e);
+      log("⛔ Connect failed. See console.");
+    } 
+  }
+  
+  async function tryBuy(amountEth) {
+    if (!signer) { log("❌ Connect wallet first."); return; }
+    const value = ethers.parseEther(String(amountEth));
+    
+    try {
+      log(`🛒 buy() with ${amountEth} ETH…`);
+      const presale = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI, signer);
+      const tx = await presale.buy({ value });
+      log({ submitting_tx_hash: tx.hash });
+      const rcpt = await tx.wait();
+      log("✅ buy() success");
+      log(`🔗 https://sepolia.etherscan.io/tx/${rcpt.hash}`);
+      return;
+    } catch (e1) {
+      log("⚠️ buy() failed, falling back to raw send…");
+      log(e1.shortMessage || e1.message || String(e1));
+    }
+    try {
+      log(`💸 sendTransaction ${amountEth} ETH → ${PRESALE_ADDRESS}…`);
+      const tx2 = await signer.sendTransaction({ to: PRESALE_ADDRESS, value });
+      log({ submitting_tx_hash: tx2.hash });
+      const rcpt2 = await tx2.wait();
+      log("✅ Raw send success");
+      log(`🔗 https://sepolia.etherscan.io/tx/${rcpt2.hash}`);
+    } catch (e2) {
+      log("❌ Raw send failed."); 
+      log(e2.shortMessage || e2.message || String(e2));
+    }
+  }
+      
+  els.connect?.addEventListener("click", connect);
+  els.buy?.addEventListener("click", () => tryBuy("0.01"));
+  els.buyCustom?.addEventListener("click", () => {
+    const v = (els.customEth.value || "").trim();
+    if (!v) return log("Enter a custom ETH amount first.");
+    tryBuy(v);
+  });
+})();
+</script>
+
+<!-- add-on: toasts + Add-to-MetaMask + owner controls -->
+<script>
+(() => {
+  const { ethers } = window;
+
+  // --- addresses / abi ---
+  const PRESALE_ADDRESS = "0xDb5a326Aa1d97165EE8d513c0BB544Ca14E72A31"; // same as above (test presale)
+  const OWNER_ADDRESS   = "0x4799d7Bf70371A396E3415336DD821586A72D37e"; // for reference only (UI gating via owner())
+  const ETHERSCAN_BASE  = "https://sepolia.etherscan.io/tx/";
+  const TOKEN_ADDRESS   = "0x72E284f9F2cf9DEE3e60e78B1730c6037A1858D4"; // Add-to-MetaMask button
+
+  const PRESALE_ABI = [
+    "function owner() view returns (address)",
+    "function setPaused(bool _paused)",
+    "function finalize(bool sweepETH)",
+    "function airdrop(address to,uint256 amount)"
+  ];
+
+  // --- minimal toast styles (auto-injected once) ---
+  if (!document.getElementById("exwife-toast-style")) {
+    const css = `
+      #toast-root{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;gap:12px;z-index:9999}
+      .toast{min-width:280px;max-width:360px;background:#11131a;color:#eaeaf1;padding:12px 14px;border-radius:14px;
+             box-shadow:0 8px 20px rgba(0,0,0,.35);border:1px solid #2a2d3a}
+      .toast.ok{border-left:6px solid #16a34a}
+      .toast.bad{border-left:6px solid #ef4444}
+      .toast .title{font-weight:700;margin-bottom:6px}
+      .toast .msg{opacity:.95}
+      .toast a{color:#a5b4fc;text-decoration:none}
+      .toast a:hover{text-decoration:underline}
+    `;
+    const style = document.createElement("style");
+    style.id = "exwife-toast-style";
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  // --- toast helper ---
+  function toast(title, msg = "", type = "ok", txHash) {
+    const root = document.getElementById("toast-root");
+    if (!root) return;
+    const node = document.createElement("div");
+    node.className = `toast ${type}`;
+    const link = txHash ? `<div style="margin-top:6px"><a target="_blank" rel="noreferrer" href="${ETHERSCAN_BASE}${txHash}">View on Etherscan</a></div>` : "";
+    node.innerHTML = `<div class="title">${title}</div><div class="msg">${msg}</div>${link}`;
+    root.appendChild(node);
+    setTimeout(() => node.remove(), 6000);
+  }
+
+  // --- add EXWIFE to wallet (if button exists) ---
+  (function wireAddToken(){
+    const btn = document.getElementById("addTokenBtn");
+    if (!btn || !window.ethereum) return;
+    btn.addEventListener("click", async () => {
+      try {
+        await window.ethereum.request({
+          method: "wallet_watchAsset",
+          params: {
+            type: "ERC20",
+            options: {
+              address: TOKEN_ADDRESS,
+              symbol: "EXWIFE",
+              decimals: 18,
+              image: location.origin + "/img/exwife-32.png"
+            }
+          }
+        });
+        toast("Token Added", "EXWIFE is now in your wallet.");
+      } catch (e) {
+        toast("Error", e?.message || "Could not add token", "bad");
+      }
+    });
+  })();
+
+  // --- owner controls wiring ---
+  let provider, signer, presale;
+
+  async function ensure() {
+    if (!window.ethereum) throw new Error("Wallet not found");
+    if (!provider) provider = new ethers.BrowserProvider(window.ethereum);
+    if (!signer)   signer   = await provider.getSigner();
+    if (!presale)  presale  = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI, signer);
+    return presale;
+  }
+
+  async function showOwnerIfMe() {
+    try {
+      const p  = await ensure();
+      const me = (await signer.getAddress()).toLowerCase();
+      const ow = (await p.owner()).toLowerCase();
+      if (me === ow) {
+        const card = document.getElementById("ownerCard");
+        const note = document.getElementById("ownerStatus");
+        if (card) card.style.display = "block";
+        if (note) note.textContent = "You are the owner.";
+      }
+    } catch (_) { /* ignore until connected */ }
+  }
+
+  async function callAndToast(fn, args, label) {
+    try {
+      const p  = await ensure();
+      const tx = await p[fn](...args);
+      toast(`${label} sent`, "Waiting for confirmation…", "ok", tx.hash);
+      const r  = await tx.wait();
+      toast("Success", `${label} confirmed.`, "ok", r.hash);
+    } catch (e) {
+      toast("Error", e?.shortMessage || e?.message || "Action failed", "bad");
+    }
+  }
+
+  // buttons (exist in your PRESALE section)
+  document.getElementById("pauseBtn")?.addEventListener("click", () => callAndToast("setPaused", [true],  "Pause presale"));
+  document.getElementById("unpauseBtn")?.addEventListener("click", () => callAndToast("setPaused", [false], "Unpause presale"));
+  document.getElementById("finalizeBtn")?.addEventListener("click", () => callAndToast("finalize",  [true],  "Finalize & Sweep ETH"));
+  document.getElementById("airBtn")?.addEventListener("click", () => {
+    const to  = (document.getElementById("airTo")?.value || "").trim();
+    const amt = (document.getElementById("airAmt")?.value || "").trim();
+    if (!to)  return toast("Error", "Enter recipient address", "bad");
+    if (!amt) return toast("Error", "Enter amount", "bad");
+    const amountWei = ethers.parseUnits(amt, 18);
+    callAndToast("airdrop", [to, amountWei], "Airdrop");
+  });
+
+  // re-check owner when wallet/network changes
+  if (window.ethereum) {
+    window.ethereum.on?.("accountsChanged", showOwnerIfMe);
+    window.ethereum.on?.("chainChanged",   showOwnerIfMe);
+  }
+
+  // check after user hits connect
+  document.getElementById("btn-connect")?.addEventListener("click", () => setTimeout(showOwnerIfMe, 1500));
+  document.getElementById("connect")?.addEventListener("click",     () => setTimeout(showOwnerIfMe, 1500));
+
+  // also try once on load
+  window.addEventListener("load", () => setTimeout(showOwnerIfMe, 1200));
+})();
+</script>
+
+<div id="toast-root"></div>
+</body>
+</html>
+

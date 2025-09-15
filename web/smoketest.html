@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Wallet Connect Smoketest</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0b0d; color:#eee; margin:0; padding:2rem; }
+    .card { max-width:640px; margin:0 auto; padding:1rem; border:1px solid #2a2a35; border-radius:12px; background:#121218; }
+    h1 { font-size:1.25rem; margin:0 0 .5rem; }
+    button { padding:.6rem 1rem; border-radius:10px; border:1px solid #3a3a46; background:#232332; color:#eee; cursor:pointer; }
+    button:disabled { opacity:.4; cursor:not-allowed; }
+    .row { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.75rem; }
+    #status { margin-top:.75rem; opacity:.85; min-height:1.2em; }
+    .ok { color:#8ef19f; } .err { color:#ff6e6e; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Presale Interaction Test (Sepolia)</h1>
+    <p>Connect your wallet, then try a small test buy (0.01 ETH).</p>
+
+    <div class="row">
+      <button id="connectBtn" disabled>Connect Wallet</button>
+      <button id="testBuyBtn" disabled>Test Buy 0.01 ETH</button>
+    </div>
+
+    <div class="row">
+      <input id="customEth" placeholder="0.02" style="width:120px;padding:.5rem;border-radius:8px;border:1px solid #3a3a46;background:#0f0f16;color:#eee;">
+      <button id="customBuyBtn" disabled>Buy Custom</button>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
+  <!-- Load ethers ONCE, at the very bottom -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <script>
+  (async () => {
+    // 0) Immediate diagnostic: wallet present?
+    const statusEl = document.getElementById('status');
+    const set = (msg, cls='') => { statusEl.className = cls; statusEl.textContent = msg; console.log(msg); };
+
+    const connectBtn   = document.getElementById('connectBtn');
+    const testBuyBtn   = document.getElementById('testBuyBtn');
+    const customBuyBtn = document.getElementById('customBuyBtn');
+    const customEth    = document.getElementById('customEth');
+
+    if (!window.ethereum) {
+      set("No wallet detected. Open in Chrome/Brave and install/login to MetaMask/Rabby/Frame.", "err");
+      // Buttons remain disabled on purpose
+      alert("No wallet detected. Safari won't inject a wallet. Use Chrome/Brave with MetaMask.");
+      return;
+    }
+
+    // 1) Enable buttons now that ethereum is present
+    [connectBtn, testBuyBtn, customBuyBtn].forEach(b => b.disabled = false);
+
+    const CHAIN_ID_HEX = "0xaa36a7"; // Sepolia
+    const PRESALE_ADDRESS = "0xDb5a326Aa1d97165EE8d513c0BB544Ca14E72A31";
+    let provider, signer, user;
+
+    async function ensureSepolia() {
+      try {
+        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_ID_HEX }]});
+      } catch (err) {
+        if (err && err.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: CHAIN_ID_HEX,
+              chainName: "Sepolia",
+              nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
+              rpcUrls: ["https://rpc.sepolia.org"],
+              blockExplorerUrls: ["https://sepolia.etherscan.io/"]
+            }]
+          });
+        } else { throw err; }
+      }
+    }
+
+    async function connect() {
+      try {
+        await ensureSepolia();
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        user = accounts?.[0];
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        const net = await provider.getNetwork();
+        set(`Connected: ${user} | chainId=${net.chainId}`, "ok");
+      } catch (e) {
+        console.error(e);
+        set(`Connect failed: ${e.message || e}`, "err");
+      }
+    }
+
+    async function buyEth(amountEth) {
+      try {
+        if (!signer) throw new Error("Wallet not connected.");
+        await ensureSepolia();
+        const amt = parseFloat(amountEth);
+        if (!Number.isFinite(amt) || amt <= 0) throw new Error("Enter a valid positive ETH amount.");
+        set(`Sending ${amt} ETH… check wallet…`);
+        const tx = await signer.sendTransaction({ to: PRESALE_ADDRESS, value: ethers.parseEther(String(amt)) });
+        set(`Submitted: ${tx.hash} (waiting)…`);
+        await tx.wait();
+        set(`✅ Success: ${tx.hash}`, "ok");
+      } catch (e) {
+        console.error(e);
+        set(`❌ Buy failed: ${e.message || e}`, "err");
+      }
+    }
+
+    connectBtn.addEventListener('click', connect);
+    testBuyBtn.addEventListener('click', () => buyEth(0.01));
+    customBuyBtn.addEventListener('click', () => buyEth(customEth.value));
+
+    window.ethereum.on?.("accountsChanged", (accs) => {
+      user = accs[0];
+      set(user ? `Account changed: ${user}` : "No account");
+    });
+    window.ethereum.on?.("chainChanged", () => window.location.reload());
+  })();
+  </script>
+</body>
+</html>
+

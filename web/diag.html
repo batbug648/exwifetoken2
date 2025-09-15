@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>EXWIFE Diagnostics</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <script>
+    window.EXWIFE_ENV = {
+      network: 'sepolia',
+      rpc: 'https://rpc.sepolia.org',
+      presale: '0x739Cd2a31eFd1A7813b2B54D01449620cC2A523c',
+      token: '0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07',
+      symbol: 'EXWIFE',
+      goalEth: 1200
+    };
+    window.GOAL_ETH = 1200;
+    window.PRESALE_ADDRESS = EXWIFE_ENV.presale;
+  </script>
+</head>
+<body>
+  <h1>Diagnostics</h1>
+  <p>Open console (F12) to see logs.</p>
+
+  <!-- DIAGNOSTIC BLOCK -->
+  <script>
+    console.log("=== DIAG START ===");
+    console.log("Scripts loaded:", document.scripts.length);
+    console.log("EXWIFE_ENV:", window.EXWIFE_ENV);
+    console.log("PRESALE_ADDRESS:", window.PRESALE_ADDRESS);
+    console.log("typeof EXWIFE_refreshRaised:", typeof window.EXWIFE_refreshRaised);
+
+    // Add stub if missing
+    if (typeof window.EXWIFE_refreshRaised === "undefined") {
+      window.EXWIFE_refreshRaised = function() {
+        console.log("STUB: EXWIFE_refreshRaised() called.");
+      };
+      console.log("Stub function injected.");
+    }
+
+    console.log("=== DIAG END ===");
+  </script>
+</body>
+</html>
+

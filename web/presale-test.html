@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Connect Test — EXWIFE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0a0a0b; color:#f6f6f7; padding:24px; }
+    .card { max-width:620px; margin:0 auto; background:#141417; border:1px solid #222; border-radius:16px; padding:20px; }
+    button { padding:10px 14px; border-radius:10px; border:1px solid #444; background:#fff; color:#111; font-weight:700; cursor:pointer; }
+    .row { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+    pre { background:#0b0b0f; border:1px solid #222; border-radius:10px; padding:12px; white-space:pre-wrap; max-height:260px; overflow:auto; }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Minimal Connect Test (direct MetaMask)</h2>
+    <p>This page uses <span class="mono">window.ethereum.request</span> only—no libraries. If MetaMask is installed and unlocked, it will prompt.</p>
+
+    <div class="row">
+      <button id="btnConnect">Connect Wallet</button>
+      <button id="btnSwitch">Switch/Add Sepolia</button>
+    </div>
+
+    <div class="row">
+      <div id="acct" class="mono">Account: —</div>
+      <div id="chain" class="mono">Chain: —</div>
+    </div>
+
+    <pre id="log"></pre>
+  </div>
+
+<script>
+(function(){
+  const logEl = document.getElementById('log');
+  const acctEl = document.getElementById('acct');
+  const chainEl = document.getElementById('chain');
+  function log(...msgs){
+    const line = msgs.map(m => typeof m === 'string' ? m : JSON.stringify(m,null,2)).join(' ');
+    logEl.textContent += line + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+    console.log('[CONNECT-TEST]', ...msgs);
+  }
+
+  function injected(){
+    const eth = window.ethereum;
+    if (!eth) return null;
+    if (Array.isArray(eth.providers)) {
+      const mm = eth.providers.find(p => p.isMetaMask);
+      return mm || eth.providers[0];
+    }
+    return eth;
+  }
+
+  async function readState(eth){
+    try {
+      const [chainId, accounts] = await Promise.all([
+        eth.request({ method: 'eth_chainId' }),
+        eth.request({ method: 'eth_accounts' })
+      ]);
+      acctEl.textContent = 'Account: ' + (accounts[0] || '—');
+      chainEl.textContent = 'Chain: ' + chainId + ' (' + parseInt(chainId,16) + ')';
+      log('State:', { chainId, account: accounts[0] || null });
+    } catch(e){
+      log('State read failed:', { code: e.code, msg: e.message });
+    }
+  }
+
+  async function connect(){
+    const eth = injected();
+    if (!eth){
+      log('❌ No injected wallet detected. Install MetaMask in this Chrome profile.');
+      return;
+    }
+    try{
+      log('Requesting accounts (eth_requestAccounts)…');
+      await eth.request({ method: 'eth_requestAccounts' });
+      await readState(eth);
+      log('✅ Connected (if no account shown, open MetaMask and finish any pending prompt).');
+    }catch(e){
+      log('⛔ Connect failed', { code: e.code, msg: e.message });
+      if (e.code === -32002) log('Hint: A request is already pending in MetaMask. Click the 🦊 icon and complete it.');
+      if (e.code === 4001)  log('Hint: You rejected the request. Click Connect again and approve.');
+    }
+  }
+
+  async function switchSepolia(){
+    const eth = injected();
+    if (!eth){
+      log('❌ No injected wallet.');
+      return;
+    }
+    try{
+      log('Switching to Sepolia (0xaa36a7)…');
+      await eth.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0xaa36a7' }]});
+      log('✅ Switched to Sepolia.');
+      await readState(eth);
+    }catch(e){
+      if (e && e.code === 4902){
+        try{
+          log('Adding Sepolia…');
+          await eth.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0xaa36a7',
+              chainName: 'Sepolia',
+              nativeCurrency: { name:'Sepolia ETH', symbol:'ETH', decimals:18 },
+              rpcUrls: ['https://rpc.sepolia.org'],
+              blockExplorerUrls: ['https://sepolia.etherscan.io']
+            }]
+          });
+          log('✅ Sepolia added. Now switching…');
+          await eth.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0xaa36a7' }]});
+          await readState(eth);
+        }catch(e2){
+          log('❌ Add/Switch failed', { code: e2.code, msg: e2.message });
+        }
+      } else {
+        log('❌ Switch failed', { code: e.code, msg: e.message });
+      }
+    }
+  }
+
+  document.getElementById('btnConnect').addEventListener('click', connect);
+  document.getElementById('btnSwitch').addEventListener('click', switchSepolia);
+
+  // Auto-log state on load
+  if (window.ethereum){
+    readState(injected());
+    window.ethereum.on?.('accountsChanged', (a)=>{ log('accountsChanged', a); readState(injected()); });
+    window.ethereum.on?.('chainChanged', (c)=>{ log('chainChanged', c); readState(injected()); });
+  } else {
+    log('No window.ethereum detected. Install MetaMask.');
+  }
+})();
+</script>
+</body>
+</html>
