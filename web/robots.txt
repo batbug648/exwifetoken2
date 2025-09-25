@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+# If you ever expose private panels, disallow here:
+# Disallow: /owner
+Sitemap: https://exwifetoken.com/sitemap.xml
+
