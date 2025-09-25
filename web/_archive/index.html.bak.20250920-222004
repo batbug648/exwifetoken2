@@ -1,10 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- BUILD: OP_PANEL v12.3.2 -->
+
+<!-- BUILD: OP_INLINE v12.3 Sep15-chi -->
   <!-- EXWIFE v12.3 + UX POLISH v1: banner/countdown, progress numbers, toasts -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EXWIFE Presale (Sepolia) — v12.3</title>
+  <title>EXWIFE Presale (Mainnet) — v12.3</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/img/exwife-hero.png" />
@@ -15,10 +18,10 @@
   <!-- ENV + minimal ABI -->
   <script>
     window.EXWIFE_ENV = {
-      network: 'sepolia',
-      rpc: 'https://ethereum-sepolia.publicnode.com',
-      presale: '0xdf2740dd8530c7B9F090269577112874b91D550C',
-      token:   '0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07',
+      network: 'mainnet',
+      rpc: 'https://eth.drpc.org',
+      presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed',
+      token:   '0xd0F4f922891cBfaDB73511df7af66dE15DA93C94',
       symbol:  'EXWIFE',
       goalEth: 1200
     };
@@ -113,7 +116,7 @@
       loading="lazy"
       style="max-width:100%;height:auto;border-radius:16px;display:inline-block;box-shadow:0 6px 24px rgba(0,0,0,.08)"
     />
-    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Sepolia)</h1>
+    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Mainnet)</h1>
     <p style="margin:0;font-size:16px;opacity:.8">Goal: 1200 ETH • Safe, read-only UI until you connect</p>
   </header>
 
@@ -180,7 +183,7 @@
     // --- Resilient read-only provider with auto-fallbacks ---
     const RPCS = [
       (window.EXWIFE_ENV && window.EXWIFE_ENV.rpc) || '',
-      'https://ethereum-sepolia.publicnode.com',
+      'https://eth.drpc.org',
       'https://eth-sepolia.public.blastapi.io',
       'https://1rpc.io/sepolia'
     ].filter(Boolean);
@@ -339,7 +342,7 @@
                   chainId: '0xaa36a7',
                   chainName: 'Sepolia',
                   nativeCurrency: { name: 'Sepolia ETH', symbol: 'SEP', decimals: 18 },
-                  rpcUrls: ['https://ethereum-sepolia.publicnode.com'],
+                  rpcUrls: ['https://eth.drpc.org'],
                   blockExplorerUrls: ['https://sepolia.etherscan.io/'],
                 }]
               });
@@ -751,7 +754,442 @@ const OWNER_FALLBACK = '0x4799d7Bf70371A396E3415336DD821586A72D37e'.toLowerCase(
   setTimeout(() => { maybeShowOwnerPanel(); hookWalletEvents(); }, 600);
 })();
 </script>
+<!-- === EXWIFE Toasts (success/error/info) === -->
+<style>
+  #exwifeToastHost{position:fixed;right:16px;top:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+  .exwifeToast{min-width:280px;max-width:360px;background:#101010;color:#eee;border:1px solid #2b2b2b;border-radius:14px;
+    padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);font:14px/1.3 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+    pointer-events:auto;opacity:0;transform:translateY(-6px);transition:opacity .18s ease, transform .18s ease}
+  .exwifeToast.show{opacity:1;transform:translateY(0)}
+  .exwifeToast .hdr{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px}
+  .exwifeToast .msg{opacity:.9;word-wrap:break-word}
+  .exwifeToast.success{border-color:#235c2a}
+  .exwifeToast.success .dot{width:10px;height:10px;border-radius:999px;background:#8df58d}
+  .exwifeToast.error{border-color:#6a2525}
+  .exwifeToast.error .dot{width:10px;height:10px;border-radius:999px;background:#ff8a8a}
+  .exwifeToast.info{border-color:#2b2b2b}
+  .exwifeToast.info .dot{width:10px;height:10px;border-radius:999px;background:#9bb2ff}
+  .exwifeToast .x{margin-left:auto;opacity:.7;cursor:pointer}
+</style>
+<div id="exwifeToastHost" aria-live="polite"></div>
+<script>
+(() => {
+  const host = document.getElementById('exwifeToastHost');
+  function makeToast(type, title, message, ms=4200){
+    const el = document.createElement('div');
+    el.className = `exwifeToast ${type}`;
+    el.innerHTML = `
+      <div class="hdr"><span class="dot"></span><span>${title}</span>
+        <span class="x" title="Close">✕</span>
+      </div>
+      <div class="msg">${message || ''}</div>`;
+    host.appendChild(el);
+    requestAnimationFrame(()=>el.classList.add('show'));
+    const close = ()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),180); };
+    el.querySelector('.x').onclick = close;
+    if (ms>0) setTimeout(close, ms);
+  }
+  window.EXWIFE_toast       = (m)=>makeToast('info','Notice', m, 3200);
+  window.EXWIFE_toastSuccess= (m)=>makeToast('success','Success', m, 4200);
+  window.EXWIFE_toastError  = (m)=>makeToast('error','Error', m, 5200);
 
+  // --- Optional: auto-hook the existing buy flow if present ---
+  if (typeof window.EXWIFE_buyInline === 'function') {
+    const _origBuy = window.EXWIFE_buyInline;
+    window.EXWIFE_buyInline = async function(...args){
+      try {
+        window.EXWIFE_toast('Submitting purchase…');
+        const out = await _origBuy.apply(this, args);
+        // If your original returns a tx, try to await confirmation for a nicer toast
+        if (out && out.hash && typeof out.wait === 'function') {
+          window.EXWIFE_toastSuccess('Transaction sent. Waiting for confirmation…');
+          try { await out.wait(); window.EXWIFE_toastSuccess('Purchase confirmed! ✅'); } 
+          catch { /* confirmation failed: ignore, fallback to next refresh */ }
+        } else {
+          window.EXWIFE_toastSuccess('Purchase submitted! ✅');
+        }
+        try { if (typeof window.EXWIFE_refreshRaised === 'function') await window.EXWIFE_refreshRaised(); } catch {}
+        return out;
+      } catch (e) {
+        const msg = e?.reason || e?.message || String(e);
+        window.EXWIFE_toastError(`Buy failed: ${msg}`);
+        throw e;
+      }
+    };
+  }
+
+  // Tiny helpers for anywhere else on the page:
+  window.EXWIFE_txSent     = (h)=>window.EXWIFE_toastSuccess(`Tx sent: ${String(h).slice(0,10)}…`);
+  window.EXWIFE_txConfirmed= ()=>window.EXWIFE_toastSuccess('Confirmed ✅');
+})();
+</script>
+<!-- === /EXWIFE Toasts === -->
+<!-- === EXWIFE Progress Animation === -->
+<style>
+  #progFill, [data-exwife-progress-fill]{
+    transition: width .9s cubic-bezier(.22,.8,.26,.99);
+    will-change: width;
+  }
+</style>
+<script>
+(() => {
+  // Compute % and animate fill after each successful refresh
+  function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+  function setFill(pct){
+    const el = document.getElementById('progFill') || document.querySelector('[data-exwife-progress-fill]');
+    if (el) el.style.width = clamp(pct,0,100).toFixed(2) + '%';
+  }
+  async function computePct() {
+    const goal = Number(window.GOAL_ETH || window?.EXWIFE_ENV?.goalEth || 0);
+    if (!goal || !isFinite(goal)) return null;
+    // If your page caches the latest raised value somewhere, prefer that.
+    // Otherwise, try to read number on page:
+    let raised = null;
+    try {
+      const n = document.querySelector('[data-exwife-raised], #raisedAmount, .raised-amount');
+      if (n) raised = Number(String(n.textContent).replace(/[^\d.]/g,'')) || null;
+    } catch {}
+    // Final fallback: if EXWIFE_refreshRaised exposes a cached value
+    if (raised == null && typeof window.EXWIFE_lastRaised === 'number') raised = window.EXWIFE_lastRaised;
+    if (raised == null) return null;
+    return clamp((raised / goal) * 100, 0, 100);
+  }
+
+  // Wrap EXWIFE_refreshRaised to animate after it finishes
+  if (typeof window.EXWIFE_refreshRaised === 'function') {
+    const _orig = window.EXWIFE_refreshRaised;
+    window.EXWIFE_refreshRaised = async function(...args){
+      const out = await _orig.apply(this, args);
+      try {
+        const pct = await computePct();
+        if (pct != null) setFill(pct);
+      } catch {}
+      return out;
+    };
+  }
+
+  // Do one initial tick (in case content already has numbers)
+  setTimeout(async ()=>{ const p = await computePct(); if (p!=null) setFill(p); }, 250);
+})();
+</script>
+<!-- === /EXWIFE Progress Animation === -->
+
+<!-- === EXWIFE: Owner Panel (v3 windowed, no pause/unpause) === -->
+<style>
+  #ownerPanel{position:fixed;right:12px;bottom:12px;z-index:9999}
+  #ownerPanel details{background:#111;color:#eee;border:1px solid #333;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.35);min-width:320px}
+  #ownerPanel summary{cursor:pointer;list-style:none;font-weight:700}
+  #ownerPanel .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  #ownerPanel button{border:1px solid #2b2b2b;border-radius:12px;padding:8px 10px;cursor:pointer;background:#1b1b1b;color:#fff}
+  #ownerPanel button[disabled]{opacity:.45;cursor:not-allowed}
+  #ownerPanel .pill{display:inline-block;border:1px solid #2b2b2b;border-radius:999px;padding:2px 8px;margin-left:6px;font-size:12px}
+  #ownerPanel .ok{color:#8df58d;border-color:#285e28}
+  #ownerPanel .warn{color:#ffd16b;border-color:#7a5b24}
+  #ownerPanel .bad{color:#ff8a8a;border-color:#6a2525}
+  #ownerPanel .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+</style>
+
+<div id="ownerPanel">
+  <details>
+    <summary>Owner Panel
+      <span id="opNet"  class="pill mono">…</span>
+      <span id="opStat" class="pill mono">…</span>
+    </summary>
+    <div style="margin-top:8px;font-size:12px;opacity:.8">
+      Presale: <span class="mono" id="opAddr">...</span>
+    </div>
+    <div class="row">
+      <button id="opConnectBtn" title="Connect wallet (user-initiated)">Connect</button>
+      <button id="opRefreshBtn" title="Refresh panel/status">Refresh</button>
+    </div>
+    <div style="margin-top:8px;font-size:12px">
+      Wallet: <span id="opAcct" class="mono">not connected</span>
+    </div>
+    <div style="margin-top:8px">
+      Raised: <span id="opRaised" class="mono">…</span> ETH
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="opPauseBtn"   title="This presale is windowed; pause/unpause not available" disabled>Pause (n/a)</button>
+      <button id="opUnpauseBtn" title="This presale is windowed; pause/unpause not available" disabled>Unpause (n/a)</button>
+      <button id="opWithdrawBtn">Withdraw</button>
+      <button id="opFinalizeBtn">Finalize</button>
+    </div>
+    <div id="opMsg" style="margin-top:8px;font-size:12px;opacity:.85"></div>
+  </details>
+</div>
+
+<script>
+(() => {
+  if (window.__EXWIFE_OWNER_INIT) return; window.__EXWIFE_OWNER_INIT = true;
+  [...document.querySelectorAll('#ownerPanel')].slice(1).forEach(n => n.remove());
+
+  const OWNER_ADDRESS    = "0x4799d7Bf70371A396E3415336DD821586A72D37e";
+  const SEPOLIA_CHAIN_ID = "11155111";
+  const PRESALE          = window.PRESALE_ADDRESS || window?.EXWIFE_ENV?.presale;
+  const RPC_URL          = (window.EXWIFE_ENV && window.EXWIFE_ENV.rpc) || "https://rpc.sepolia.org";
+
+  const $ = (id)=>document.getElementById(id);
+  const el = {
+    net: $('opNet'), stat: $('opStat'), addr: $('opAddr'),
+    connect: $('opConnectBtn'), refresh: $('opRefreshBtn'),
+    acct: $('opAcct'), raised: $('opRaised'),
+    withdraw: $('opWithdrawBtn'), finalize: $('opFinalizeBtn'),
+    msg: $('opMsg')
+  };
+  if (el.addr) el.addr.textContent = PRESALE || '(missing)';
+
+  const ABI = [
+    "function totalRaisedWei() view returns (uint256)",
+    "function weiRaised() view returns (uint256)",
+    "function withdraw()",
+    "function finalize()"
+  ];
+
+  const providerFromPage = () => window.ethereum ? new ethers.BrowserProvider(window.ethereum)
+                                                  : new ethers.JsonRpcProvider(RPC_URL);
+
+  async function passiveAccounts(){ try { return await window.ethereum?.request?.({method:"eth_accounts"}) || []; } catch { return []; } }
+  async function connectInteractive(){
+    if (!window.ethereum?.request) throw new Error("No wallet");
+    return await window.ethereum.request({ method: "eth_requestAccounts" });
+  }
+
+  function setMsg(m){ if (el.msg) el.msg.textContent = m || ""; }
+  const short = (a)=> a ? (a.slice(0,6)+"…"+a.slice(-4)) : "";
+
+  async function readRaised(c){
+    try { const w=await c.totalRaisedWei(); return Number(ethers.formatEther(w)); } catch {}
+    try { const w=await c.weiRaised();      return Number(ethers.formatEther(w)); } catch {}
+    try { const p=providerFromPage(); const b=await p.getBalance(PRESALE); return Number(ethers.formatEther(b)); } catch {}
+    return NaN;
+  }
+
+  async function refreshPanel(passive=true){
+    setMsg("Refreshing…");
+    const provider = providerFromPage();
+
+    let chainId=null;
+    try { const net=await provider.getNetwork(); chainId = net.chainId?.toString(); } catch {}
+    if (!el.net) {/*no-op*/}
+    else if (!chainId) { el.net.textContent="No RPC";    el.net.className="pill bad"; }
+    else if (chainId !== SEPOLIA_CHAIN_ID) { el.net.textContent="Wrong Net"; el.net.className="pill bad"; }
+    else { el.net.textContent="Sepolia";    el.net.className="pill ok"; }
+
+    const accts = passive ? await passiveAccounts() : [];
+    if (el.acct) el.acct.textContent = accts[0] ? short(accts[0]) : "not connected";
+
+    const signer = (accts[0] && chainId===SEPOLIA_CHAIN_ID && provider.getSigner) ? await provider.getSigner() : null;
+    const runner = signer || provider;
+    const contract = (PRESALE && runner) ? new ethers.Contract(PRESALE, ABI, runner) : null;
+
+    if (contract && el.raised) {
+      const r = await readRaised(contract);
+      el.raised.textContent = Number.isFinite(r) ? r.toFixed(3) : "n/a";
+      try { if (typeof window.EXWIFE_refreshRaised === "function") await window.EXWIFE_refreshRaised(); } catch {}
+    }
+
+    // v3 is window-based
+    if (el.stat) { el.stat.textContent = "Open (window)"; el.stat.className = "pill ok"; }
+
+    const isOwner = accts[0] && (accts[0].toLowerCase() === OWNER_ADDRESS.toLowerCase()) && (chainId===SEPOLIA_CHAIN_ID);
+    [el.withdraw, el.finalize].forEach(b => { if (b) b.disabled = !isOwner; });
+
+    if (el.connect) el.connect.style.display = accts.length ? "none" : "inline-block";
+    setMsg("");
+  }
+
+  async function ownerAction(fn, successNote){
+    try{
+      setMsg("Sending…");
+      const provider = providerFromPage();
+      const net = await provider.getNetwork();
+      if ((net.chainId?.toString()) !== SEPOLIA_CHAIN_ID) throw new Error("Wrong network");
+      const [acct] = await passiveAccounts();
+      if (!acct) throw new Error("Connect wallet");
+      if (acct.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) throw new Error("Not owner");
+
+      const signer = await provider.getSigner();
+      const c = new ethers.Contract(PRESALE, ABI, signer);
+      const tx = await c[fn]();
+      window.EXWIFE_txSent?.(tx.hash);
+      await tx.wait();
+      window.EXWIFE_txConfirmed?.();
+      setMsg(successNote || "Done.");
+      try { if (typeof window.EXWIFE_refreshRaised === "function") await window.EXWIFE_refreshRaised(); } catch {}
+      await refreshPanel(true);
+    } catch(e){
+      const msg = e?.reason || e?.message || String(e);
+      window.EXWIFE_toastError?.(msg);
+      setMsg(`Error: ${msg}`);
+    }
+  }
+
+  el.refresh?.addEventListener('click', () => refreshPanel(true));
+  el.connect?.addEventListener('click', async () => { try{ setMsg("Connecting…"); await connectInteractive(); await refreshPanel(true); setMsg(""); } catch(e){ setMsg(`Connect failed: ${e?.message||e}`);} });
+  el.withdraw?.addEventListener('click', () => ownerAction('withdraw',  'Withdrawn.'));
+  el.finalize?.addEventListener('click', () => ownerAction('finalize', 'Finalized.'));
+
+  refreshPanel(true);
+  setInterval(()=>refreshPanel(true), 20000);
+})();
+</script>
+<!-- === /EXWIFE Owner Panel === -->
+<script>
+/* EXWIFE v12.4 — Owner Panel clean patch (no pause/unpause; owner-guarded) */
+(() => {
+  if (window.__EXWIFE_OWNER_PATCH) return; window.__EXWIFE_OWNER_PATCH = true;
+
+  const PRESALE_ADDRESS = window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale;
+  if (!PRESALE_ADDRESS) { console.warn("No PRESALE_ADDRESS"); return; }
+
+  const PRESALE_ABI_MIN = [
+    "function owner() view returns (address)",
+    "function totalRaisedWei() view returns (uint256)",
+    "function weiRaised() view returns (uint256)",
+    "function buy() payable",
+    "function finalize()",
+    "function withdraw(address to)"
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const out = (id, text) => { const el = $(id); if (el) el.textContent = text; };
+
+  const haveMM = !!window.ethereum;
+  out("netPill", haveMM ? "Sepolia/Mainnet?" : "No Wallet");
+
+  const provider = haveMM
+    ? new ethers.BrowserProvider(window.ethereum)
+    : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc || "https://rpc.sepolia.org");
+
+  const cRead = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI_MIN, provider);
+
+  async function getRaised() {
+    try { return await cRead.totalRaisedWei(); } catch {}
+    try { return await cRead.weiRaised(); } catch {}
+    try { return await provider.getBalance(PRESALE_ADDRESS); } catch {}
+    return 0n;
+  }
+
+  function toggleOwnerControls(show) {
+    ["withdrawBtn", "finalizeBtn"].forEach(id => { const el = $(id); if (el) el.style.display = show ? "" : "none"; });
+  }
+
+  async function getSigner() {
+    if (!window.ethereum) throw new Error("No wallet");
+    const s = new ethers.BrowserProvider(window.ethereum);
+    return await s.getSigner();
+  }
+
+  async function refreshUI() {
+    try {
+      const net = await provider.getNetwork();
+      const chainId = Number(net?.chainId || 0);
+      out("netPill", chainId === 1 ? "Mainnet" : (chainId === 11155111 ? "Sepolia" : `Chain ${chainId}`));
+    } catch { out("netPill", "Offline"); }
+
+    try {
+      const raised = await getRaised();
+      out("raisedOut", `${ethers.formatEther(raised)} ETH`);
+      out("status", "Ready");
+    } catch (e) {
+      console.error(e); out("status", "Error reading raised");
+    }
+
+    try {
+      const owner = await cRead.owner();
+      let signerAddr = null;
+      try { const s = await getSigner(); signerAddr = await s.getAddress(); } catch {}
+      const amOwner = owner && signerAddr && owner.toLowerCase() === signerAddr.toLowerCase();
+      toggleOwnerControls(amOwner);
+    } catch { toggleOwnerControls(false); }
+  }
+
+  async function onConnect() {
+    if (!window.ethereum) { alert("Install MetaMask or a compatible wallet."); return; }
+    try { await window.ethereum.request({ method: "eth_requestAccounts" }); await refreshUI(); }
+    catch (e) { console.error(e); alert(e?.message || "Wallet connect failed"); }
+  }
+
+  async function onWithdraw() {
+    out("status", "Withdrawing…");
+    try {
+      const signer = await getSigner();
+      const c = cRead.connect(signer);
+      let tx; const to = await signer.getAddress();
+      try { tx = await c.withdraw(to); } catch { tx = await c.withdraw(); }
+      const r = await tx.wait();
+      out("status", `Withdrawn. Tx: ${r?.hash || tx?.hash}`); await refreshUI();
+    } catch (e) { console.error(e); out("status", e?.reason || e?.shortMessage || e?.message || "Withdraw failed"); }
+  }
+
+  async function onFinalize() {
+    out("status", "Finalizing…");
+    try {
+      const signer = await getSigner();
+      const c = cRead.connect(signer);
+      const tx = await c.finalize(); const r = await tx.wait();
+      out("status", `Finalized. Tx: ${r?.hash || tx?.hash}`); await refreshUI();
+    } catch (e) { console.error(e); out("status", e?.reason || e?.shortMessage || e?.message || "Finalize failed"); }
+  }
+
+  $("connectBtn")?.addEventListener("click", onConnect);
+  $("refreshBtn")?.addEventListener("click", refreshUI);
+  $("withdrawBtn")?.addEventListener("click", onWithdraw);
+  $("finalizeBtn")?.addEventListener("click", onFinalize);
+
+  refreshUI();
+})();
+</script>
+
+<!-- Force mainnet reader (wallet optional) -->
+<script>
+  (function(){
+    const MAINNET_RPC = (window.EXWIFE_ENV && EXWIFE_ENV.rpc) || 'https://eth.drpc.org';
+    const ADDR = (window.PRESALE_ADDRESS) || (window.EXWIFE_ENV && EXWIFE_ENV.presale);
+    const ABI_MIN = [
+      "function totalRaisedWei() view returns (uint256)",
+      "function weiRaised() view returns (uint256)"
+    ];
+    window.EXWIFE_refreshRaised = async function () {
+      // Prefer wallet on chainId 1; else RPC provider
+      let provider;
+      try {
+        if (window.ethereum) {
+          const bp = new ethers.BrowserProvider(window.ethereum);
+          const net = await bp.getNetwork();
+          provider = (net.chainId === 1n) ? bp : new ethers.JsonRpcProvider(MAINNET_RPC);
+        } else {
+          provider = new ethers.JsonRpcProvider(MAINNET_RPC);
+        }
+      } catch {
+        provider = new ethers.JsonRpcProvider(MAINNET_RPC);
+      }
+
+      const c = new ethers.Contract(ADDR, ABI_MIN, provider);
+      let wei;
+      try { wei = await c.totalRaisedWei(); }
+      catch {
+        try { wei = await c.weiRaised(); }
+        catch { wei = await provider.getBalance(ADDR); } // last-resort fallback
+      }
+
+      const eth = Number(ethers.formatEther(wei));
+      // OPTIONAL: update DOM if your page exposes these elements
+      try {
+        const el = document.getElementById('progressNumbers');
+        const goal = Number(window.GOAL_ETH || (window.EXWIFE_ENV && EXWIFE_ENV.goalEth) || 1200);
+        if (el && Number.isFinite(goal) && goal > 0) {
+          const pct = Math.min(100, (eth / goal) * 100);
+          el.textContent = `${eth.toFixed(3)} / ${goal} ETH (${pct.toFixed(2)}%)`;
+        }
+      } catch {}
+      return eth;
+    };
+  })();
+</script>
 </body>
 </html>
 
+
+<!-- OP_CANARY v12.3.2 2025-09-15T22:09:12Z -->
+<div id="op_canary" class="mono">OP_CANARY v12.3.2 2025-09-15T22:09:12Z</div>

@@ -1,29 +1,29 @@
-require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
+require("@nomicfoundation/hardhat-ethers");
+require("@nomicfoundation/hardhat-verify");
 
-// Load custom tasks
-require("./tasks/presale-constructor");
-require("./tasks/presale-status");
-require("./tasks/presale");
-require("./tasks/presale-deploy");
+// Load tasks
+try { require("./tasks/presale-status"); } catch {}
+try { require("./tasks/presale-ops"); } catch {}
+try { require("./tasks/presale-info"); } catch {}
+
+
+
+const { MAINNET_RPC, SEPOLIA_RPC, PRIVATE_KEY, ETHERSCAN_API_KEY } = process.env;
 
 module.exports = {
   solidity: "0.8.24",
   networks: {
     sepolia: {
-      url: process.env.RPC_URL,
-      accounts: [process.env.PRIVATE_KEY],
+      url: SEPOLIA_RPC || "https://rpc.sepolia.org",
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
     },
+    mainnet: {
+      url: MAINNET_RPC,               // REQUIRED: from your .env
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
+    }
   },
   etherscan: {
-    apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY,
-    },
-  },
-  // Optional: silence Sourcify notice (leave disabled unless you want it)
-  sourcify: {
-    enabled: false,
-  },
+    apiKey: ETHERSCAN_API_KEY || ""
+  }
 };
-
-require("./tasks/presale-window");

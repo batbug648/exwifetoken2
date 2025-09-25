@@ -1,54 +1,90 @@
 const { task } = require("hardhat/config");
-const { formatEther } = require("ethers");
+const { ethers } = require("ethers");
 
-task("presale:status", "Print presale status")
-  .addOptionalParam("address", "Presale contract address (defaults to ENV)")
+const PRESALE_ABI_MIN = [
+  "function buy() payable",
+  "function totalRaisedWei() view returns (uint256)",
+  "function weiRaised() view returns (uint256)"
+];
+
+function fmtETH(wei){ try { return ethers.formatEther(wei); } catch { return "0"; } }
+
+async function getRaisedWithFallbacks(contract, provider){
+  try { const r = await contract.totalRaisedWei(); return { wei:r, source:"totalRaisedWei()" }; } catch {}
+  try { const r = await contract.weiRaised();      return { wei:r, source:"weiRaised()" };      } catch {}
+  try { const b = await provider.getBalance(contract.target); return { wei:b, source:"balanceOf(contract)" }; } catch {}
+  return { wei:0n, source:"unknown" };
+}
+
+async function getAnySigner(hre){
+  try { const ss = await hre.ethers.getSigners?.(); if (ss?.length) return ss[0]; } catch {}
+  const p = await hre.ethers.provider;
+  return ethers.Wallet.createRandom().connect(p);
+}
+
+async function tryStaticBuy(contract, signer, valueWei){
+  try {
+    await contract.connect(signer).buy.staticCall({ value: valueWei });
+    return { ok:true, reason:null };
+  } catch (e) {
+    const reason = e?.reason || e?.error?.reason || e?.shortMessage || e?.info?.error?.message || e?.message || null;
+    return { ok:false, reason };
+  }
+}
+
+task("presale:status", "Prints presale OPEN/CLOSED, raised, and min contribution probe")
+  .addParam("address", "Presale contract address")
   .setAction(async (args, hre) => {
-    const addr = args.address || process.env.PRESALE_ADDRESS || process.env.EXWIFE_PRESALE;
-    if (!addr) throw new Error("No presale address. Use --address or set PRESALE_ADDRESS.");
+    const provider = hre.ethers.provider;
+    const net = await provider.getNetwork();
+    const chainId = Number(net.chainId ?? 0);
+    let chainName = net.name || "";
+    if (chainId === 1) chainName = "mainnet";
+    if (chainId === 11155111) chainName = "sepolia";
 
-    const abi = [
-      "function paused() view returns (bool)",
-      "function totalRaisedWei() view returns (uint256)",
-      "function weiRaised() view returns (uint256)",
-      "function openingTime() view returns (uint256)",
-      "function closingTime() view returns (uint256)",
-      "function cap() view returns (uint256)",
-      "function goal() view returns (uint256)",
-      "function rate() view returns (uint256)"
+    const c = new hre.ethers.Contract(args.address, PRESALE_ABI_MIN, provider);
+    const raised = await getRaisedWithFallbacks(c, provider);
+
+    const signer = await getAnySigner(hre);
+    const PROBE_VALUES = [
+      0n,
+      10n**9n,      // 1 gwei
+      10n**12n,     // 1e3 gwei
+      10n**15n,     // 0.001 ETH
+      5n*10n**15n,  // 0.005 ETH
+      10n**16n,     // 0.01 ETH
+      5n*10n**16n,  // 0.05 ETH
+      10n**17n      // 0.1 ETH
     ];
 
-    const presale = await hre.ethers.getContractAt(abi, addr);
-
-    const paused = await presale.paused().catch(()=>false);
-    const now = Math.floor(Date.now()/1000);
-
-    async function u64(fn) {
-      try { return await presale[fn](); } catch { return null; }
+    let open=false, minOk=null, lastReason=null;
+    for (const v of PROBE_VALUES){
+      const { ok, reason } = await tryStaticBuy(c, signer, v);
+      if (ok){ open=true; minOk=v; break; }
+      lastReason = reason;
+      if (reason && /not\s*open/i.test(reason)) { open=false; break; }
     }
 
-    const totalRaised = await u64("totalRaisedWei") ?? await u64("weiRaised");
-    const cap         = await u64("cap");
-    const goal        = await u64("goal");
-    const rate        = await u64("rate");
-    const open        = await u64("openingTime");
-    const close       = await u64("closingTime");
+    const line=(k,v)=>console.log(`${k.padEnd(18," ")} ${v}`);
+    console.log("────────────────────────────────────────────────────────────");
+    line("Network", `${chainName} (chainId ${chainId})`);
+    line("Presale", args.address);
+    line("Raised (ETH)", fmtETH(raised.wei));
+    line("Raised source", raised.source);
 
-    const raisedEth = totalRaised ? Number(formatEther(totalRaised)) : NaN;
-    const capEth    = cap        ? Number(formatEther(cap)) : NaN;
-    const goalEth   = goal       ? Number(formatEther(goal)) : NaN;
-
-    function pct(n, d){ return (isFinite(n)&&isFinite(d)&&d>0) ? ((n/d)*100).toFixed(2)+"%" : "n/a"; }
-
-    console.log("Presale:", addr);
-    console.log(" paused:", paused);
-    console.log(" raised:", isFinite(raisedEth) ? `${raisedEth} ETH` : "n/a");
-    console.log("   goal:", isFinite(goalEth) ? `${goalEth} ETH` : "n/a", "(", pct(raisedEth, goalEth), ")");
-    console.log("    cap:", isFinite(capEth)  ? `${capEth} ETH`  : "n/a", "(", pct(raisedEth, capEth),  ")");
-    console.log("   rate:", rate ? rate.toString() : "n/a", "tokens/ETH");
-    console.log(" opening:", open ? new Date(Number(open)*1000).toISOString() : "n/a");
-    console.log(" closing:", close? new Date(Number(close)*1000).toISOString() : "n/a");
-    console.log("   now  :", new Date(now*1000).toISOString());
-    console.log(" status:", (open&&close) ? (now<Number(open)?"NOT OPEN":(now>Number(close)?"CLOSED":"OPEN")) : "UNKNOWN");
+    if (open){
+      line("Status", "OPEN");
+      if (minOk === 0n) line("Min contribution","0");
+      else if (minOk !== null) line("Min contribution", `${fmtETH(minOk)} ETH (first passing probe)`);
+      else line("Min contribution", ">= probe max (increase ladder)");
+      console.log("────────────────────────────────────────────────────────────");
+      process.exit(0);
+    } else {
+      line("Status", "CLOSED");
+      if (lastReason) line("Last reason", lastReason);
+      console.log("────────────────────────────────────────────────────────────");
+      process.exit(2);
+    }
   });
 
+module.exports = {};

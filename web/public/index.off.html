@@ -194,7 +194,7 @@
             new Promise((_, rej) => setTimeout(() => rej(new Error('RPC timeout')), 2500))
           ]);
           if (typeof ok === 'number') { __RO_PROVIDER = p; return __RO_PROVIDER; }
-        } catch (e) {}
+        } catch {}
       }
       throw new Error('No working RPC endpoint');
     }
@@ -308,13 +308,13 @@ async function updateNetworkPill() {
 
         let w;
         if (typeof presale.totalRaisedWei === 'function') {
-          try { w = await presale.totalRaisedWei(); } catch (e) {}
+          try { w = await presale.totalRaisedWei(); } catch {}
         }
         if ((!w || w === 0n) && typeof presale.weiRaised === 'function') {
-          try { w = await presale.weiRaised(); } catch (e) {}
+          try { w = await presale.weiRaised(); } catch {}
         }
         if (!w || w === 0n) {
-          try { w = await ro.getBalance(addr); } catch (e) {}
+          try { w = await ro.getBalance(addr); } catch {}
         }
 
         const e = Number(ethers.formatEther(w || 0n));
@@ -327,154 +327,106 @@ async function updateNetworkPill() {
     }
     window.EXWIFE_refreshRaised = EXWIFE_refreshRaised;
 
-// --- Buy flow with custom amount; accepts Mainnet or Sepolia; explorer link adapts ---
-async function buyInline() {
-  try {
-    setStatus('Connecting…');
-    if (!window.ethereum) {
-      showToast("No wallet provider found.", "", "err");
-      setStatus('No wallet');
-      return;
-    }
+    // --- Buy flow with custom amount; accepts Mainnet or Sepolia; explorer link adapts ---
+    async function buyInline(){
+      try {
+        setStatus('Connecting…');
+        if (!window.ethereum) { showToast("No wallet provider found.", "", "err"); setStatus('No wallet'); return; }
 
-    // Prefer MetaMask if multiple providers are injected
-    const mm = (window.ethereum.providers || []).find(p => p.isMetaMask)
-              || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+        // Prefer MetaMask if multiple providers are injected
+        const mm = (window.ethereum.providers || []).find(p => p.isMetaMask)
+                  || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
 
-    await mm.request({ method: 'eth_requestAccounts' });
+        await mm.request({ method: 'eth_requestAccounts' });
 
-    const provider = new ethers.BrowserProvider(mm);
+        const provider = new ethers.BrowserProvider(mm);
 
-<script>
-// Reusable helper: ensures wallet is on Mainnet or Sepolia; returns chainId string or null
-async function ensureAllowedNetwork(provider, mm, setStatus, showToast) {
-  let net = await provider.getNetwork();
-  let chainIdStr = net.chainId?.toString(); // '1' or '11155111'
-
-  if (chainIdStr === '1' || chainIdStr === '11155111') return chainIdStr;
-
-  try {
-    await mm.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x1' }] });
-    net = await provider.getNetwork();
-    chainIdStr = net.chainId?.toString();
-    if (chainIdStr === '1' || chainIdStr === '11155111') return chainIdStr;
-  } catch (e) {}
-
+// Ensure allowed network (prefer Mainnet; allow Sepolia)
+const net = await provider.getNetwork();
+let chainIdStr = net.chainId?.toString();
+if (chainIdStr !== '1' && chainIdStr !== '11155111') {
   try {
     await mm.request({
-      method: 'wallet_addEthereumChain',
-      params: [{
-        chainId: '0xaa36a7',
-        chainName: 'Sepolia',
-        nativeCurrency: { name: 'Sepolia ETH', symbol: 'SEP', decimals: 18 },
-        rpcUrls: ['https://rpc.sepolia.org', 'https://eth-sepolia.public.blastapi.io'],
-        blockExplorerUrls: ['https://sepolia.etherscan.io/'],
-      }]
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x1' }], // Ethereum Mainnet
     });
-    net = await provider.getNetwork();
-    chainIdStr = net.chainId?.toString();
-    if (chainIdStr === '1' || chainIdStr === '11155111') return chainIdStr;
-  } catch (e) {}
-
-  showToast?.('Please switch to Ethereum Mainnet (or Sepolia) and try again.', '', 'err', 5200);
-  setStatus?.('Wrong network');
-  return null;
-}
-
-// Example usage inside updateNetworkPill (no recursion)
-async function updateNetworkPill() {
-  const pill = document.getElementById('netPill');
-  const buyBtn = document.getElementById('buyBtn');
-
-  if (!window.ethereum) {
-    if (pill) pill.textContent = 'No Wallet';
-    if (buyBtn) buyBtn.disabled = true;
-    return;
-  }
-
-  const mm = window.ethereum;
-  const provider = new ethers.BrowserProvider(mm);
-
-  // optional: re-entrancy guard
-  if (updateNetworkPill.__busy) return;
-  updateNetworkPill.__busy = true;
-
-  try {
-    const cid = await ensureAllowedNetwork(provider, mm, (s)=>pill && (pill.textContent=s), window.showToast);
-    let ok = false, label = 'Wrong Network';
-    if (cid === '1')       { label = 'Ethereum Mainnet'; ok = true; }
-    else if (cid === '11155111') { label = 'Sepolia'; ok = true; }
-
-    if (pill) pill.textContent = label;
-    if (buyBtn) buyBtn.disabled = !ok;
-
-    // keep progress bar in sync
-    if (typeof window.EXWIFE_refreshRaised === 'function') {
-      await window.EXWIFE_refreshRaised();
-    }
-  } catch (err) {
-    console.error('updateNetworkPill error:', err);
-    if (pill) pill.textContent = 'Error';
-    if (buyBtn) buyBtn.disabled = true;
-  } finally {
-    updateNetworkPill.__busy = false;
-  }
-}
-</script>
-
-    const signer  = await provider.getSigner();
-    const addr    = window.PRESALE_ADDRESS;
-    const abi     = window.PRESALE_ABI_MIN;
-    const presale = new ethers.Contract(addr, abi, signer);
-
-    // Amount + validation (tune as needed)
-    const raw = (el('buyAmount')?.value || '').trim();
-    const amt = Number(raw);
-    const MIN = 0.001, MAX = 10;
-    if (!isFinite(amt) || amt <= 0) { showToast('Enter an amount in ETH.', '', 'err'); setStatus('Ready'); return; }
-    if (amt < MIN)                  { showToast(`Minimum is ${MIN} ETH`, '', 'err');  setStatus('Ready'); return; }
-    if (amt > MAX)                  { showToast(`Maximum is ${MAX} ETH`, '', 'err');  setStatus('Ready'); return; }
-
-    setStatus('Submitting tx…');
-    showToast('Submitting transaction…', 'Confirm in your wallet', 'info', 3000);
-
-    // Send tx
-    const tx = await presale.buy({ value: ethers.parseEther(String(amt)) });
-
-    // Explorer link depends on chain
-    const link = el('txLink');
-    const explorer = (chainIdStr === '11155111') ? 'https://sepolia.etherscan.io' : 'https://etherscan.io';
-    if (link) { link.href = `${explorer}/tx/${tx.hash}`; link.style.display=''; }
-
-    showToast('Buy submitted!', tx.hash.slice(0,10) + '…' + tx.hash.slice(-8), 'ok', 5200);
-    await tx.wait();
-    setStatus('✅ Confirmed');
-    await window.EXWIFE_refreshRaised();
-
+    const n2 = await provider.getNetwork();
+    chainIdStr = n2.chainId?.toString();
   } catch (e) {
-    console.error('buy() failed:', e);
-    setStatus('❌ Error');
-    const msg = (e?.reason || e?.data?.message || e?.message || String(e));
-    if (/insufficient funds/i.test(msg)) {
-      showToast('Insufficient ETH', 'Top up for gas/amount', 'err', 6000);
-    } else if (/user rejected/i.test(msg)) {
-      showToast('Transaction rejected', '', 'err', 4200);
+    if (e?.code === 4902) {
+      await mm.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: '0x1',
+          chainName: 'Ethereum Mainnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: ['https://eth.drpc.org'],
+          blockExplorerUrls: ['https://etherscan.io/'],
+        }],
+      });
+      const n2 = await provider.getNetwork();
+      chainIdStr = n2.chainId?.toString();
     } else {
-      showToast('Buy failed', msg, 'err', 6500);
+      showToast('Please switch to Ethereum Mainnet (or Sepolia) and try again.', '', 'err', 5200);
+      setStatus('Wrong network');
+      return;
     }
   }
 }
+await updateNetworkPill();
+        }
+
+        const signer  = await provider.getSigner();
+        const addr    = window.PRESALE_ADDRESS;
+        const abi     = window.PRESALE_ABI_MIN;
+        const presale = new ethers.Contract(addr, abi, signer);
+
+        // Amount + validation (you can tune these)
+        const raw = (el('buyAmount')?.value || '').trim();
+        const amt = Number(raw);
+        const MIN = 0.001, MAX = 10;
+        if (!isFinite(amt) || amt <= 0) { showToast('Enter an amount in ETH.', '', 'err'); setStatus('Ready'); return; }
+        if (amt < MIN)                  { showToast(`Minimum is ${MIN} ETH`, '', 'err');  setStatus('Ready'); return; }
+        if (amt > MAX)                  { showToast(`Maximum is ${MAX} ETH`, '', 'err');  setStatus('Ready'); return; }
+
+        setStatus('Submitting tx…');
+        showToast('Submitting transaction…', 'Confirm in your wallet', 'info', 3000);
+const link = el('txLink');
+const explorer = (chainIdStr === '11155111') ? 'https://sepolia.etherscan.io' : 'https://etherscan.io';
+if (link) { link.href = `${explorer}/tx/${tx.hash}`; link.style.display=''; }
+
+        // Explorer host depends on chain
+        const explorer = (chainIdStr === '11155111') ? 'https://sepolia.etherscan.io' : 'https://etherscan.io';
+        if (link) { link.href = `${explorer}/tx/${tx.hash}`; link.style.display=''; }
+        showToast('Buy submitted!', tx.hash.slice(0,10) + '…' + tx.hash.slice(-8), 'ok', 5200);
+        await tx.wait();
+        setStatus('✅ Confirmed');
+        await window.EXWIFE_refreshRaised();
+
+      } catch (e) {
+        console.error('buy() failed:', e);
+        setStatus('❌ Error');
+        const msg = (e?.reason || e?.data?.message || e?.message || String(e));
+        if (/insufficient funds/i.test(msg)) {
+          showToast('Insufficient ETH', 'Top up for gas/amount', 'err', 6000);
+        } else if (/user rejected/i.test(msg)) {
+          showToast('Transaction rejected', '', 'err', 4200);
+        } else {
+          showToast('Buy failed', msg, 'err', 6500);
+        }
+      }
+    }
 
     // --- Paused pill updater; combines with network pill to control BUY ---
     async function updatePausedPill(){
       try {
         const ro = await getRO();
         const c  = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
-        let isPaused = false; try { isPaused = await c.paused(); } catch (e) {}
+        let isPaused = false; try { isPaused = await c.paused(); } catch {}
         window.EXWIFE_STATE.paused = isPaused;
         setStatus(isPaused ? 'Paused' : 'Ready');
         await updateNetworkPill();
-      } catch (e) {}
+      } catch {}
     }
 
     // Countdown banner (America/Chicago close time)
@@ -618,7 +570,7 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
       try {
         const n = document.querySelector('[data-exwife-raised], #raisedAmount, .raised-amount');
         if (n) raised = Number(String(n.textContent).replace(/[^\d.]/g,'')) || null;
-      } catch (e) {}
+      } catch {}
       if (raised == null && typeof window.EXWIFE_lastRaised === 'number') raised = window.EXWIFE_lastRaised;
       if (raised == null) return null;
       return clamp((raised / goal) * 100, 0, 100);
@@ -630,7 +582,7 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
         try {
           const pct = await computePct();
           if (pct != null) setFill(pct);
-        } catch (e) {}
+        } catch {}
         return out;
       };
     }
@@ -709,79 +661,22 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
       "function owner() view returns (address)"
     ];
 
-// --- Provider helpers ---
-const RPC_URL = window.EXWIFE_ENV?.rpc || "https://eth.drpc.org";
-const PRESALE = window.PRESALE_ADDRESS || window.PRESALE || window.EXWIFE_ENV?.presale;
+    const providerFromPage = () => window.ethereum ? new ethers.BrowserProvider(window.ethereum)
+                                                    : new ethers.JsonRpcProvider(RPC_URL);
 
-function providerFromPage() {
-  return window.ethereum
-    ? new ethers.BrowserProvider(window.ethereum)
-    : new ethers.JsonRpcProvider(RPC_URL);
-}
-
-// Return array of accounts without prompting (empty array if none)
-async function passiveAccounts() {
-  try {
-    const req = window.ethereum?.request;
-    if (!req) return [];
-    const accts = await req({ method: "eth_accounts" });
-    return Array.isArray(accts) ? accts : [];
-  } catch (e) {
-    return [];
-  }
-}
-
-// Prompt user to connect
-async function connectInteractive() {
-  if (!window.ethereum?.request) throw new Error("No wallet");
-  const accts = await window.ethereum.request({ method: "eth_requestAccounts" });
-  return Array.isArray(accts) ? accts : [];
-}
-
-// UI helpers
-function setMsg(m) {
-  if (window.el?.msg) window.el.msg.textContent = m || "";
-}
-const short = (a) => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
-
-// Read raised amount from contract or safe fallbacks
-async function readRaised(contract) {
-  // 1) totalRaisedWei() (preferred)
-  try {
-    if (typeof contract?.totalRaisedWei === "function") {
-      const w = await contract.totalRaisedWei();
-      return Number(ethers.formatEther(w));
+    async function passiveAccounts(){ try { return await window.ethereum?.request?.({method:"eth_accounts"}) || []; } catch { return []; } }
+    async function connectInteractive(){
+      if (!window.ethereum?.request) throw new Error("No wallet");
+      return await window.ethereum.request({ method: "eth_requestAccounts" });
     }
-  } catch (e) {}
-
-  // 2) weiRaised() (legacy)
-  try {
-    if (typeof contract?.weiRaised === "function") {
-      const w = await contract.weiRaised();
-      return Number(ethers.formatEther(w));
-    }
-  } catch (e) {}
-
-  // 3) Contract balance fallback
-  try {
-    const p = providerFromPage();
-    const addr = PRESALE;
-    if (addr) {
-      const b = await p.getBalance(addr);
-      return Number(ethers.formatEther(b));
-    }
-  } catch (e) {}
-
-  return NaN;
-}
 
     function setMsg(m){ if (el.msg) el.msg.textContent = m || ""; }
     const short = (a)=> a ? (a.slice(0,6)+"…"+a.slice(-4)) : "";
 
     async function readRaised(c){
-      try { const w=await c.totalRaisedWei(); return Number(ethers.formatEther(w)); } catch (e) {}
-      try { const w=await c.weiRaised();      return Number(ethers.formatEther(w)); } catch (e) {}
-      try { const p=providerFromPage(); const b=await p.getBalance(PRESALE); return Number(ethers.formatEther(b)); } catch (e) {}
+      try { const w=await c.totalRaisedWei(); return Number(ethers.formatEther(w)); } catch {}
+      try { const w=await c.weiRaised();      return Number(ethers.formatEther(w)); } catch {}
+      try { const p=providerFromPage(); const b=await p.getBalance(PRESALE); return Number(ethers.formatEther(b)); } catch {}
       return NaN;
     }
 
@@ -790,7 +685,7 @@ async function readRaised(contract) {
       const provider = providerFromPage();
 
       let chainId=null;
-      try { const net=await provider.getNetwork(); chainId = net.chainId?.toString(); } catch (e) {}
+      try { const net=await provider.getNetwork(); chainId = net.chainId?.toString(); } catch {}
       if (!el.net) {/*no-op*/}
       else if (!chainId) { el.net.textContent="No RPC"; el.net.className="pill bad"; }
       else if (chainId === "1") { el.net.textContent="Ethereum"; el.net.className="pill ok"; }
@@ -807,7 +702,7 @@ else { el.net.textContent=`Chain ${chainId}`; el.net.className="pill warn"; }
       if (contract && el.raised) {
         const r = await readRaised(contract);
         el.raised.textContent = Number.isFinite(r) ? r.toFixed(3) : "n/a";
-        try { if (typeof window.EXWIFE_refreshRaised === "function") await window.EXWIFE_refreshRaised(); } catch (e) {}
+        try { if (typeof window.EXWIFE_refreshRaised === "function") await window.EXWIFE_refreshRaised(); } catch {}
       }
 
       // v3 is window-based
@@ -821,41 +716,33 @@ else { el.net.textContent=`Chain ${chainId}`; el.net.className="pill warn"; }
       setMsg("");
     }
 
-async function ownerAction(fn, successNote){
-  try {
-    setMsg("Sending…");
+    async function ownerAction(fn, successNote){
+      try{
+        setMsg("Sending…");
+        const provider = providerFromPage();
+        const net = await provider.getNetwork();
+        const id = (net.chainId?.toString());
+const id = net.chainId?.toString();
+if (id !== "1" && id !== "11155111") throw new Error("Wrong network");
+        const [acct] = await passiveAccounts();
+        if (!acct) throw new Error("Connect wallet");
+        if (acct.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) throw new Error("Not owner");
 
-    const provider = providerFromPage();
-    const net = await provider.getNetwork();
-    const id = net.chainId?.toString();   // single declaration
-
-    // Allow Ethereum Mainnet (1) OR Sepolia (11155111)
-    if (id !== "1" && id !== "11155111") {
-      throw new Error("Wrong network");
+        const signer = await provider.getSigner();
+        const c = new ethers.Contract(PRESALE, ABI, signer);
+        const tx = await c[fn]();
+        window.EXWIFE_txSent?.(tx.hash);
+        await tx.wait();
+        window.EXWIFE_txConfirmed?.();
+        setMsg(successNote || "Done.");
+        try { if (typeof window.EXWIFE_refreshRaised === "function") await window.EXWIFE_refreshRaised(); } catch {}
+        await refreshPanel(true);
+      } catch(e){
+        const msg = e?.reason || e?.message || String(e);
+        window.EXWIFE_toastError?.(msg);
+        setMsg(`Error: ${msg}`);
+      }
     }
-
-    const [acct] = await passiveAccounts();
-    if (!acct) throw new Error("Connect wallet");
-    if (acct.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) throw new Error("Not owner");
-
-    const signer = await provider.getSigner();
-    const c = new ethers.Contract(PRESALE, ABI, signer);
-
-    const tx = await c[fn]();
-    window.EXWIFE_txSent?.(tx.hash);
-    await tx.wait();
-    window.EXWIFE_txConfirmed?.();
-
-    setMsg(successNote || "Done.");
-    try { if (typeof window.EXWIFE_refreshRaised === "function") await window.EXWIFE_refreshRaised(); } catch (e) {}
-    await refreshPanel(true);
-
-  } catch (e) {
-    const msg = e?.reason || e?.message || String(e);
-    window.EXWIFE_toastError?.(msg);
-    setMsg(`Error: ${msg}`);
-  }
-}
 
     el.refresh?.addEventListener('click', () => refreshPanel(true));
     el.connect?.addEventListener('click', async () => { try{ setMsg("Connecting…"); await connectInteractive(); await refreshPanel(true); setMsg(""); } catch(e){ setMsg(`Connect failed: ${e?.message||e}`);} });
@@ -872,61 +759,3 @@ async function ownerAction(fn, successNote){
 </body>
 </html>
 
-<!-- EXWIFE Gate 4: network pill auto-refresh -->
-<script>
-async function updateNetworkPill() {
-  const pill = document.getElementById("netPill");
-  const buyBtn = document.getElementById("buyBtn");
-
-  if (!window.ethereum) {
-    if (pill) pill.textContent = "No Wallet";
-    if (buyBtn) buyBtn.disabled = true;
-    return;
-  }
-
-  try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const net = await provider.getNetwork();
-
-    let label = "Unknown";
-    let ok = false;
-
-    if (net.chainId === 1n) { 
-      label = "Ethereum Mainnet"; 
-      ok = true;
-    }
-    else if (net.chainId === 11155111n) { 
-      label = "Sepolia"; 
-      ok = true;
-    }
-    else {
-      label = "Wrong Network";
-    }
-
-    if (pill) pill.textContent = label;
-    if (buyBtn) buyBtn.disabled = !ok;
-
-  } catch (err) {
-    console.error("updateNetworkPill error:", err);
-    if (pill) pill.textContent = "Error";
-    if (buyBtn) buyBtn.disabled = true;
-  }
-}
-
-// Wire to provider events
-if (window.ethereum) {
-  window.ethereum.on("chainChanged", () => {
-    console.log("chainChanged → updating pill");
-    updateNetworkPill();
-  });
-  window.ethereum.on("accountsChanged", () => {
-    console.log("accountsChanged → updating pill");
-    updateNetworkPill();
-  });
-}
-
-// Initial run after DOM ready
-document.addEventListener("DOMContentLoaded", () => {
-  updateNetworkPill();
-});
-</script>

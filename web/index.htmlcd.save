@@ -1,0 +1,3 @@
+[ -d pages ] && mv pages pages.off || echo "no pages/ folder (ok)"
+ls -la | grep -E 'pages(\.off)?$' || echo "confirmed: no active pages/ (good)"
+

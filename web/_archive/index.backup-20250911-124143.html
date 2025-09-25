@@ -4,7 +4,7 @@
   <!-- EXWIFE v12: resilient, error-proof -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EXWIFE Presale (Sepolia) — v12</title>
+  <title>EXWIFE Presale (Mainnet) — v12</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/img/exwife-hero.png" />
@@ -15,10 +15,10 @@
   <!-- 2) ENV + minimal ABI (functions + events) -->
   <script>
     window.EXWIFE_ENV = {
-      network: 'sepolia',
-      rpc: 'https://ethereum-sepolia.publicnode.com',
+      network: 'mainnet',
+      rpc: 'https://eth.drpc.org',
       presale: '0x739Cd2a31eFd1A7813b2B54D01449620cC2A523c',
-      token:   '0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07',
+      token:   '0xd0F4f922891cBfaDB73511df7af66dE15DA93C94',
       symbol:  'EXWIFE',
       goalEth: 1200
     };
@@ -89,7 +89,7 @@
       loading="lazy"
       style="max-width:100%;height:auto;border-radius:16px;display:inline-block;box-shadow:0 6px 24px rgba(0,0,0,.08)"
     />
-    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Sepolia)</h1>
+    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Mainnet)</h1>
     <p style="margin:0;font-size:16px;opacity:.8">Goal: 1200 ETH • Safe, read-only UI until you connect</p>
   </header>
 
@@ -129,7 +129,7 @@
     // --- Resilient read-only provider with auto-fallbacks ---
     const RPCS = [
       (window.EXWIFE_ENV && window.EXWIFE_ENV.rpc) || '',
-      'https://ethereum-sepolia.publicnode.com',
+      'https://eth.drpc.org',
       'https://eth-sepolia.public.blastapi.io',
       'https://1rpc.io/sepolia'
     ].filter(Boolean);

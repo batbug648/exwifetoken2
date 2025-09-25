@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EXWIFE — CLEAN v1</title>
+  <link rel="icon" href="/favicon.ico">
+  <script>
+    // Minimal globals
+    window.EXWIFE_ENV = { network: 'mainnet', presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed' };
+    window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+
+    // Known-good updateNetworkPill; exported to window
+    async function updateNetworkPill(){
+      const el = {
+        pill: document.getElementById('netPill'),
+        buy:  document.getElementById('buyBtn'),
+        scan: document.getElementById('scanLink'),
+      };
+      let pillText = 'Ethereum', buyDisabled = false;
+      try {
+        if (window.ethereum && window.ethereum.request) {
+          const idHex = await window.ethereum.request({ method: 'eth_chainId' }).catch(()=>null);
+          const id = idHex ? parseInt(idHex, 16) : 1;
+          if (id !== 1) { pillText = 'Wrong Network'; buyDisabled = true; }
+        } else { pillText = 'No Wallet'; buyDisabled = false; }
+      } catch (e) { pillText = 'Error'; buyDisabled = true; }
+      if (el.pill) el.pill.textContent = pillText;
+      if (el.buy != null) el.buy.disabled = buyDisabled;
+      if (el.scan) el.scan.href = `https://etherscan.io/address/${window.PRESALE_ADDRESS}`;
+      return { pill: pillText, buyDisabled, href: el.scan?.href || null };
+    }
+    window.updateNetworkPill = updateNetworkPill;
+    document.addEventListener('DOMContentLoaded', () => updateNetworkPill());
+  </script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto;max-width:720px;margin:40px auto;padding:0 16px}
+    .pill{display:inline-block;padding:4px 10px;border:1px solid #ddd;border-radius:999px}
+    .row{display:flex;gap:12px;align-items:center;margin:16px 0}
+  </style>
+</head>
+<body>
+  <h1>EXWIFE Presale</h1>
+  <div class="row">
+    <span id="netPill" class="pill">…</span>
+    <button id="buyBtn">Buy</button>
+    <a id="scanLink" target="_blank" rel="noopener">Etherscan</a>
+  </div>
+</body>
+</html>

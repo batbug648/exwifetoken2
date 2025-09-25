@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EXWIFE Presale</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;max-width:780px;margin:40px auto;padding:0 16px}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #ddd}
+    .row{display:flex;align-items:center;gap:12px;margin:14px 0}
+    button{padding:10px 16px;border-radius:10px;border:1px solid #ccc;cursor:pointer}
+    a{word-break:break-all}
+  </style>
+  <!-- (Optional) Ethers UMD present if you need it later -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <script>
+    // ---- Minimal globals (safe) ----
+    window.EXWIFE_ENV = Object.assign({
+      network: 'mainnet',
+      presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed'
+    }, window.EXWIFE_ENV || {});
+    window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+
+    // Known-good updateNetworkPill (exported to window)
+    async function updateNetworkPill(){
+      const el = {
+        pill: document.getElementById('netPill'),
+        buy:  document.getElementById('buyBtn'),
+        scan: document.getElementById('scanLink'),
+      };
+
+      let pillText = 'Ethereum';
+      let buyDisabled = false;
+
+      try {
+        if (window.ethereum && window.ethereum.request) {
+          const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' }).catch(()=>null);
+          const chainId = chainIdHex ? parseInt(chainIdHex, 16) : 1;
+          if (chainId !== 1) { pillText = 'Wrong Network'; buyDisabled = true; }
+        } else {
+          pillText = 'No Wallet';
+          // You can choose to disable without wallet; keeping enabled for now:
+          buyDisabled = false;
+        }
+      } catch (e) {
+        pillText = 'Error';
+        buyDisabled = true;
+        console.warn('updateNetworkPill failed', e);
+      }
+
+      if (el.pill) el.pill.textContent = pillText;
+      if (el.buy != null) el.buy.disabled = buyDisabled;
+      if (el.scan) el.scan.href = `https://etherscan.io/address/${window.PRESALE_ADDRESS}`;
+
+      return { pill: pillText, buyDisabled, href: el.scan ? el.scan.href : null };
+    }
+    window.updateNetworkPill = updateNetworkPill;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateNetworkPill();
+      if (window.ethereum && window.ethereum.on) {
+        window.ethereum.on('chainChanged', () => updateNetworkPill());
+        window.ethereum.on('accountsChanged', () => updateNetworkPill());
+      }
+    });
+  </script>
+</head>
+<body>
+  <h1>EXWIFE Presale</h1>
+
+  <div class="row">
+    <span id="netPill" class="pill">…</span>
+    <button id="buyBtn">Buy</button>
+    <a id="scanLink" href="https://etherscan.io/address/0xF4A37B656A33d418FB37280c9304274078A9b3ed" target="_blank" rel="noopener">Etherscan</a>
+  </div>
+
+  <p>Presale: <strong id="addrText">0xF4A37B656A33d418FB37280c9304274078A9b3ed</strong></p>
+
+  <script>
+    // Keep the address text in sync
+    document.getElementById('addrText').textContent = window.PRESALE_ADDRESS;
+  </script>
+</body>
+</html>

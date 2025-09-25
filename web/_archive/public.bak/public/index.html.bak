@@ -500,7 +500,7 @@ try {
 <script>
   // === Balance + Progress helpers ===
   (function () {
-    const TOKEN_ADDRESS   = "0x0cF3EcA1AA8f4BCc10D51C8f4e75C17667D8Af07"; // your EXWIFE token
+    const TOKEN_ADDRESS   = "0xd0F4f922891cBfaDB73511df7af66dE15DA93C94"; // your EXWIFE token
     const PRESALE_ADDRESS = "0xDe43eA415C91e2789Ac15Cf802487588218A4674"; // your presale
     const TOKEN_ABI = [
       "function balanceOf(address) view returns (uint256)",

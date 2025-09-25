@@ -136,7 +136,136 @@
     $('connect').onclick = connect;
     $('refresh').onclick = refresh;
     $('buy').onclick = buy;
+// --- Network pill updater; enables Buy on Mainnet or Sepolia ---
+async function updateNetworkPill() {
+  const pill = document.getElementById('netPill');
+  const buyBtn = document.getElementById('buyBtn');
+  if (!pill) return;
+
+  if (!window.ethereum) {
+    pill.textContent = 'No Wallet';
+    pill.style.background = '#3f3f46';
+    pill.style.borderColor = '#52525b';
+    if (buyBtn) buyBtn.disabled = true;
+    return;
+  }
+
+  try {
+    const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+
+    if (chainIdHex?.toLowerCase() === '0x1') {
+      pill.textContent = 'Ethereum';
+      pill.style.background = '#1e3a8a';
+      pill.style.borderColor = '#1d4ed8';
+      if (buyBtn) buyBtn.disabled = false;
+
+      const scan = document.getElementById('scanLink');
+      if (scan) scan.href = `https://etherscan.io/address/${window.PRESALE_ADDRESS}`;
+
+    } else if (chainIdHex?.toLowerCase() === '0xaa36a7') {
+      pill.textContent = 'Sepolia';
+      pill.style.background = '#134e4a';
+      pill.style.borderColor = '#14532d';
+      if (buyBtn) buyBtn.disabled = false;
+
+      const scan = document.getElementById('scanLink');
+      if (scan) scan.href = `https://sepolia.etherscan.io/address/${window.PRESALE_ADDRESS}`;
+
+    } else {
+      pill.textContent = 'Wrong Network';
+      pill.style.background = '#7f1d1d';
+      pill.style.borderColor = '#991b1b';
+      if (buyBtn) buyBtn.disabled = true;
+
+      const scan = document.getElementById('scanLink');
+      if (scan) scan.removeAttribute('href');
+    }
+  } catch (err) {
+    console.error('updateNetworkPill error:', err);
+    pill.textContent = 'Error';
+    pill.style.background = '#7f1d1d';
+    pill.style.borderColor = '#991b1b';
+    if (buyBtn) buyBtn.disabled = true;
+  }
+}
+
   </script>
+<script>
+(function () {
+  try {
+    // Define a minimal fallback if the main one didn't load
+    if (typeof window.updateNetworkPill !== 'function') {
+      const el = (id) => document.getElementById(id);
+
+      async function ensureAllowedNetworkInline() {
+        if (!window.ethereum?.request) return null;
+        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainIdHex?.toLowerCase() === '0x1')       return '1';         // Mainnet
+        if (chainIdHex?.toLowerCase() === '0xaa36a7')  return '11155111';  // Sepolia
+        return null;
+      }
+
+      async function updateNetworkPill() {
+        const pill   = el('netPill');
+        const buyBtn = el('buyBtn');
+        const scan   = el('scanLink');
+        if (!pill) return;
+
+        if (!window.ethereum) {
+          pill.textContent = 'No Wallet';
+          pill.style.background = '#3f3f46';
+          pill.style.borderColor = '#52525b';
+          if (buyBtn) buyBtn.disabled = true;
+          if (scan) scan.removeAttribute('href');
+          return;
+        }
+
+        try {
+          const cid = await ensureAllowedNetworkInline();
+          let ok = false;
+          let label = 'Wrong Network';
+
+          if (cid === '1') {
+            label = 'Ethereum';
+            ok = true;
+            if (scan && window.PRESALE_ADDRESS)
+              scan.href = `https://etherscan.io/address/${window.PRESALE_ADDRESS}`;
+          } else if (cid === '11155111') {
+            label = 'Sepolia';
+            ok = true;
+            if (scan && window.PRESALE_ADDRESS)
+              scan.href = `https://sepolia.etherscan.io/address/${window.PRESALE_ADDRESS}`;
+          } else {
+            if (scan) scan.removeAttribute('href');
+          }
+
+          pill.textContent = label;
+          if (buyBtn) buyBtn.disabled = !ok;
+        } catch (e) {
+          console.error('fallback updateNetworkPill error:', e);
+          pill.textContent = 'Error';
+          pill.style.background = '#7f1d1d';
+          pill.style.borderColor = '#991b1b';
+          if (buyBtn) buyBtn.disabled = true;
+        }
+      }
+
+      // Export + initial run
+      window.updateNetworkPill = updateNetworkPill;
+      // Run once on load
+      setTimeout(() => { try { updateNetworkPill(); } catch(_){} }, 0);
+    }
+  } catch (e) { /* no-op */ }
+})();
+</script>
+
 </body>
 </html>
 
+<script>
+try {
+  if (typeof updateNetworkPill === 'function') {
+    window.updateNetworkPill = updateNetworkPill;
+  }
+} catch(e){}
+</script>

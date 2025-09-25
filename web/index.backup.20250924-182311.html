@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EXWIFE Presale — CLEAN v1758755864</title>
+
+  <!-- Ethers UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <!-- ENV -->
+  <script>
+    window.EXWIFE_ENV = {
+      network: 'mainnet',
+      rpc: 'https://eth.drpc.org',
+      presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed',
+      token:   '0xd0F4f922891cBfaDB73511df7af66dE15DA93C94',
+      symbol:  'EXWIFE',
+      goalEth: 1200
+    };
+    window.GOAL_ETH = 1200;
+    window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+    window.PRESALE_ABI_MIN = [
+      "function paused() view returns (bool)",
+      "function totalRaisedWei() view returns (uint256)",
+      "function weiRaised() view returns (uint256)",
+      "function buy() payable"
+    ];
+  </script>
+
+  <!-- Minimal styles -->
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto; background:#0e0f12; color:#e7e7ea; margin:0; }
+    .pill { display:inline-block; background:#1c1d22; border:1px solid #2a2b31; padding:6px 10px; border-radius:999px; }
+    .btn { background:#2d6cdf; border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+    .wrap { max-width:680px; margin:40px auto; padding:0 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>EXWIFE Clean Test</h1>
+    <div class="pill" id="netPill">No Wallet</div>
+    <a id="scanLink" class="pill" href="#" target="_blank" style="margin-left:8px">View on Etherscan</a>
+    <div style="margin-top:12px">
+      <button class="btn" id="buyBtn">Buy 0.01 ETH</button>
+    </div>
+  </div>
+
+  <!-- Clean global: updateNetworkPill -->
+  <script>
+  (() => {
+    if (window.__EXWIFE_NETPILL_INIT) return;
+    window.__EXWIFE_NETPILL_INIT = true;
+
+    const TARGET_CHAIN_ID = 1n; // mainnet
+    const LABELS = { "1": "Ethereum", "11155111": "Sepolia" };
+    const SCAN = { "1": "https://etherscan.io", "11155111": "https://sepolia.etherscan.io" };
+
+    async function getChainId() {
+      try {
+        if (window.ethereum) {
+          const p = new ethers.BrowserProvider(window.ethereum);
+          const n = await p.getNetwork();
+          return n.chainId ?? null; // BigInt or null
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    async function updateNetworkPill() {
+      const netPill = document.getElementById('netPill');
+      const buyBtn  = document.getElementById('buyBtn');
+      const scan    = document.getElementById('scanLink');
+
+      let pill = 'No Wallet';
+      let buyDisabled = true;
+      let href = window.PRESALE_ADDRESS ? `https://etherscan.io/address/${window.PRESALE_ADDRESS}` : '';
+
+      try {
+        const cid = await getChainId(); // BigInt|null
+        if (!window.ethereum) {
+          pill = 'No Wallet';
+          buyDisabled = true;
+        } else if (cid == null) {
+          pill = 'Unknown Network';
+          buyDisabled = true;
+        } else {
+          const cidStr = cid.toString();
+          const label = LABELS[cidStr] || `Chain ${cidStr}`;
+          const onTarget = (cid === TARGET_CHAIN_ID);
+          pill = onTarget ? label : 'Wrong Network';
+          buyDisabled = !onTarget;
+          if (window.PRESALE_ADDRESS) {
+            const base = SCAN[cidStr] || SCAN["1"];
+            href = `${base}/address/${window.PRESALE_ADDRESS}`;
+          }
+        }
+      } catch (e) {
+        console.error('updateNetworkPill error:', e);
+        pill = 'Error';
+        buyDisabled = true;
+      }
+
+      if (netPill) netPill.textContent = pill;
+      if (buyBtn)  buyBtn.disabled = !!buyDisabled;
+      if (scan && href) scan.href = href;
+
+      return { pill, buyDisabled, href };
+    }
+
+    window.updateNetworkPill = updateNetworkPill;
+
+    const onReady = async () => {
+      try { await updateNetworkPill(); } catch (_) {}
+      try {
+        if (window.ethereum && typeof window.ethereum.on === 'function') {
+          const reup = () => { updateNetworkPill().catch(() => {}); };
+          window.ethereum.on('chainChanged', reup);
+          window.ethereum.on('accountsChanged', reup);
+        }
+      } catch (_) {}
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', onReady, { once: true });
+    } else {
+      onReady();
+    }
+  })();
+  </script>
+</body>
+</html>
