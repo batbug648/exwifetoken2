@@ -59,6 +59,19 @@
       ]
     },
     {
+      "source": "/:path((?!.+\\.).*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "text/html; charset=utf-8"
+        }
+      ]
+    },
+    {
       "source": "/:all*\\.(js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2)",
       "headers": [
         {
