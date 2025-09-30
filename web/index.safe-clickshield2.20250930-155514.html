@@ -861,32 +861,7 @@ async function EXWIFE_refreshRaised() {
   }
 })();
 </script>
-<script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i)return;i.setAttribute("placeholder","0.001 (min)");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");const gate=()=>{const v=parseFloat(i.value);if(b)b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i||!b)return;const gate=()=>{const v=parseFloat(i.value);b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script id="safe-buy-guard">(()=>{try{const MIN=0.001;const getInput=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");const i=getInput();if(i&&btn){i.setAttribute("min","0.001");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");if(!i.getAttribute("placeholder"))i.setAttribute("placeholder","0.001 (min)");const gate=()=>{const v=parseFloat(i.value);btn.disabled=!(v>=MIN)};i.addEventListener("input",gate,{passive:true});gate();}const wrap=()=>{if(typeof window.handleBuy==="function"&&!window.handleBuy.__wrapped){const orig=window.handleBuy;window.handleBuy=async function(...args){try{const i2=getInput();const amt=parseFloat(i2?.value??"");if(!(amt>=MIN))return;return await orig.apply(this,args);}catch(e){return await orig.apply(this,args)}};window.handleBuy.__wrapped=true;}}; if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",wrap,{once:true});}else{wrap();}}catch(e){console.warn("safe-buy-guard failed:",e)}})();</script><script id="safe-buy-click-shield">(()=>{try{const MIN=0.001;const getI=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");if(!btn)return;btn.addEventListener("click",(ev)=>{try{const i=getI();const amt=parseFloat(i?.value??"");if(!(amt>=MIN)){ev.preventDefault();ev.stopImmediatePropagation();return false;}}catch(_){}},true);}catch(e){console.warn("safe-buy-click-shield failed:",e)}})();</script><script id="safe-toast-filter">(()=>{try{
-  const MIN=0.001;
-  const getI=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");
-  const btn=document.querySelector("#buyBtn");
-
-  // Track explicit user buy intent (click buy or press Enter inside amount box)
-  window.__buyIntent=false;
-  const arm=()=>{ window.__buyIntent=true; setTimeout(()=>window.__buyIntent=false, 2000); };
-  if(btn){ btn.addEventListener("click", arm, {capture:false}); }
-  const i=getI();
-  if(i){ i.addEventListener("keydown", (e)=>{ if(e.key==="Enter") arm(); }, {capture:false}); }
-
-  // Wrap toast.err to suppress the specific empty-amount message unless intent=true
-  const t=window.toast||{};
-  const origErr=t.err?.bind(t);
-  if(origErr && !t.__wrappedEmptyGuard){
-    t.err=function(msg, opts){
-      try{
-        const isEmptyMsg = /enter an amount in eth/i.test(String(msg||""));
-        if(isEmptyMsg && !window.__buyIntent) return; // silently ignore spurious empty-amount toasts
-      }catch(_){}
-      return origErr(msg, opts);
-    };
-    t.__wrappedEmptyGuard=true;
-  }
-}catch(e){console.warn("safe-toast-filter failed:",e)}})();</script></body>
+<script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i)return;i.setAttribute("placeholder","0.001 (min)");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");const gate=()=>{const v=parseFloat(i.value);if(b)b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i||!b)return;const gate=()=>{const v=parseFloat(i.value);b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script id="safe-buy-guard">(()=>{try{const MIN=0.001;const getInput=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");const i=getInput();if(i&&btn){i.setAttribute("min","0.001");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");if(!i.getAttribute("placeholder"))i.setAttribute("placeholder","0.001 (min)");const gate=()=>{const v=parseFloat(i.value);btn.disabled=!(v>=MIN)};i.addEventListener("input",gate,{passive:true});gate();}const wrap=()=>{if(typeof window.handleBuy==="function"&&!window.handleBuy.__wrapped){const orig=window.handleBuy;window.handleBuy=async function(...args){try{const i2=getInput();const amt=parseFloat(i2?.value??"");if(!(amt>=MIN))return;return await orig.apply(this,args);}catch(e){return await orig.apply(this,args)}};window.handleBuy.__wrapped=true;}}; if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",wrap,{once:true});}else{wrap();}}catch(e){console.warn("safe-buy-guard failed:",e)}})();</script><script id="safe-buy-click-shield">(()=>{try{const MIN=0.001;const getI=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");if(!btn)return;btn.addEventListener("click",(ev)=>{try{const i=getI();const amt=parseFloat(i?.value??"");if(!(amt>=MIN)){ev.preventDefault();ev.stopImmediatePropagation();return false;}}catch(_){}},true);}catch(e){console.warn("safe-buy-click-shield failed:",e)}})();</script></body>
 <script type="module">
 (() => {
   if (window.__FINAL_BUY_MODULE__) return;
