@@ -284,43 +284,6 @@
   <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Core logic -->
-<script id="early-toast-guard">(()=>{try{
-    const WANT=(msg)=>!/enter an amount in eth/i.test(String(msg||"")) || (window.__buyIntent===true);
-
-    // Track explicit user intent early (click Buy or press Enter anywhere)
-    window.__buyIntent=false;
-    const arm=()=>{ window.__buyIntent=true; setTimeout(()=>window.__buyIntent=false, 2000); };
-    document.addEventListener("click",(e)=>{ const t=e.target; if(t && (t.id==="buyBtn" || (t.closest && t.closest("#buyBtn")))) arm(); }, true);
-    document.addEventListener("keydown",(e)=>{ if(e.key==="Enter") arm(); }, true);
-
-    // If toast not defined yet, create a buffering stub that filters the empty-amount error
-    if(!window.toast){
-      const buffer=[];
-      window.toast={
-        err:(m,o)=>{ if(WANT(m)) buffer.push(["err",m,o]); },
-        ok:(m,o)=>{ buffer.push(["ok",m,o]); },
-        info:(m,o)=>{ buffer.push(["info",m,o]); }
-      };
-      window.toast.__buffer=buffer;
-    } else {
-      const t=window.toast, orig=t.err && t.err.bind(t);
-      if(orig && !t.__wrappedEarly){
-        t.err=function(m,o){ if(!WANT(m)) return; return orig(m,o); };
-        t.__wrappedEarly=true;
-      }
-    }
-
-    // When page fully loads and real toast is present, flush any buffered toasts
-    window.addEventListener("load", ()=> {
-      try{
-        const t=window.toast;
-        if(t && t.__buffer && Array.isArray(t.__buffer) && !t.__flushed){
-          const buf=t.__buffer; delete t.__buffer; t.__flushed=true;
-          for(const [k,m,o] of buf){ if(k==="err"){ t.err?.(m,o); } else { t[k]?.(m,o); } }
-        }
-      }catch(_){}
-    }, {once:true});
-  }catch(e){ console.warn("early-toast-guard failed:", e); }})();</script>
 <script type="module" id="GATE7_CORE">
   // Gate 7: helper/alias shims so legacy calls keep working
   if (typeof window.setStatus !== "function") { window.setStatus = function (msg) {
