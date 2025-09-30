@@ -245,7 +245,7 @@
           <div style="display:flex;gap:8px;align-items:center;background:#1c1d22;border:1px solid #2a2b31;border-radius:10px;padding:6px 8px;">
             <span style="opacity:.8">Amount</span>
             <input id="buyAmount" inputmode="decimal"
-                   style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" / min="0.001">
+                   style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" />
             <span style="opacity:.8">ETH</span>
           </div>
 
@@ -339,7 +339,7 @@
 // Fee lookup with fallbacks (handles nodes without eth_maxPriorityFeePerGas)
 let feePerGas;
 try {
-  const fd = await provider.getGasPrice();               // may call eth_maxPriorityFeePerGas
+  const fd = await provider.getFeeData();               // may call eth_maxPriorityFeePerGas
   feePerGas = (fd?.maxFeePerGas ?? fd?.gasPrice);
 } catch (e) {
   // ignore — we’ll fall back
@@ -666,7 +666,7 @@ async function EXWIFE_refreshRaised() {
       let gas; try { gas = await presale.buy.estimateGas({ value }); }
       catch(e){ err((e?.shortMessage)||"Buy not available. Check amount/network."); return; }
 
-      let fee, gp; try { fee = await provider.getGasPrice(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
+      let fee, gp; try { fee = await provider.getFeeData(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
       const gasCost = gas * gp;
       const needWei = gasCost + value;
       const bal = await provider.getBalance(await signer.getAddress());
@@ -738,7 +738,7 @@ async function EXWIFE_refreshRaised() {
           const provider = window.ethereum
             ? new ethers.BrowserProvider(window.ethereum)
             : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
-          let fee, gp; try { fee = await provider.getGasPrice(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
+          let fee, gp; try { fee = await provider.getFeeData(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
           const signer = await provider.getSigner();
           const bal = await provider.getBalance(await signer.getAddress());
           const reserve = 200000n * gp; const minWei = ethers.parseEther("0.001");
@@ -928,10 +928,10 @@ async function EXWIFE_refreshRaised() {
         ? new ethers.BrowserProvider(window.ethereum)
         : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
 
-      // gasPrice with fallback to legacy gasPrice for older RPCs
+      // feeData with fallback to legacy gasPrice for older RPCs
       let gp = 0n;
       try {
-        const fee = await provider.getGasPrice();
+        const fee = await provider.getFeeData();
         gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
       } catch {
         try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
@@ -985,7 +985,7 @@ async function EXWIFE_refreshRaised() {
     // fee/gas price with fallback
     let gp = 0n;
     try {
-      const fee = await provider.getGasPrice();
+      const fee = await provider.getFeeData();
       gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
     } catch {
       try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
