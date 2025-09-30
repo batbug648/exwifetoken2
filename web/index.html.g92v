@@ -244,12 +244,12 @@
 
           <div style="display:flex;gap:8px;align-items:center;background:#1c1d22;border:1px solid #2a2b31;border-radius:10px;padding:6px 8px;">
             <span style="opacity:.8">Amount</span>
-            <input id="buyAmount" inputmode="decimal"
+            <input id="buyAmount" inputmode="decimal" placeholder="0.01" value="0.01"
                    style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" />
             <span style="opacity:.8">ETH</span>
           </div>
 
-          <button class="btn" id="buyBtn">Buy</button>
+          <button class="btn" id="buyBtn">Buy 0.01 ETH</button>
           <button class="btn" id="refreshBtn" style="background:#374151">Refresh</button>
           <a id="txLink" class="pill" href="#" target="_blank" style="display:none;">View tx</a>
         </div>
@@ -601,405 +601,57 @@ async function EXWIFE_refreshRaised() {
   }
 </script>
 
-<script type="module">
-(() => {
-  if (window.__G94_APPLIED__) return;
-
-  // ---- Helpers ----
-  const byId = (id) => document.getElementById(id);
-  const amtEl = () =>
-    byId("buyAmount") ||
-    byId("ethAmount") ||
-    document.querySelector("#amount, [name=amount], input[id*='amount' i], input[name*='amount' i]");
-
-  // Normalize commas to dots, trim
-  const readEth = () => {
-    const el = amtEl();
-    const raw = (el?.value ?? "").replace(",", ".").trim();
-    return { raw, num: Number.parseFloat(raw), el };
-  };
-
-  // ---- Ensure/Wrap handleBuy (and block auto-buy) ----
-  try {
-    if (window.ethers?.Contract && !window.ethers.Contract.__G94_PATCHED__) {
-      const C = window.ethers.Contract; const orig = C.prototype.buy;
-      if (typeof orig === "function") {
-        C.prototype.buy = function(...args){
-          if (!window.__ALLOW_BUY_CALL__) {
-            const e = new Error("Auto-buy blocked"); e.code = "AUTO_BUY_BLOCKED"; throw e;
-          }
-          return orig.apply(this, args);
-        };
-        C.__G94_PATCHED__ = true;
-      }
-    }
-  } catch(_) {}
-
-  const ensureHandleBuy = () => {
-    if (typeof window.handleBuy === "function") return;
-    window.handleBuy = async () => {
-      const toast = (window.toast||{});
-      const info = toast.info?.bind(toast) || ((m)=>console.info("[info]",m));
-      const ok   = toast.success?.bind(toast) || ((m)=>console.log("[ok]",m));
-      const err  = toast.error?.bind(toast) || ((m)=>console.error("[error]",m));
-
-      const { raw, num } = readEth();
-      if (!raw) { err("Enter an amount in ETH."); return; }
-      if (!Number.isFinite(num) || num < 0.001) { err("Enter an amount ≥ 0.001 ETH"); return; }
-
-      const provider = window.ethereum
-        ? new ethers.BrowserProvider(window.ethereum)
-        : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
-
-      let signer; try { signer = await provider.getSigner(); } catch(e){ err("No wallet connected."); return; }
-      const net = await provider.getNetwork();
-      if (String(net.chainId) !== "1") { await window.updateNetworkPill?.(); err("Please switch to Ethereum Mainnet."); return; }
-
-      const PRESALE = (window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale);
-      const ABI = (window.PRESALE_ABI_MIN || window.PRESALE_ABI);
-      if (!PRESALE || !ABI) { err("Presale config missing."); return; }
-      const presale = new ethers.Contract(PRESALE, ABI, signer);
-
-      try { if (await presale.paused?.()) { err("Presale is paused."); return; } } catch(_) {}
-
-      const value = ethers.parseEther(String(num));
-      let gas; try { gas = await presale.buy.estimateGas({ value }); }
-      catch(e){ err((e?.shortMessage)||"Buy not available. Check amount/network."); return; }
-
-      let fee, gp; try { fee = await provider.getFeeData(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
-      const gasCost = gas * gp;
-      const needWei = gasCost + value;
-      const bal = await provider.getBalance(await signer.getAddress());
-      if (bal < needWei) { err("Insufficient funds for amount + gas"); return; }
-
-      const buyBtn = byId("buyBtn") || document.querySelector('[data-action="buy"], button.buy, a.buy');
-      const setPending = (v)=>{ try{ if (buyBtn) buyBtn.disabled = !!v; }catch(_){} };
-
-      window.__ALLOW_BUY_CALL__ = true; setPending(true);
-      try {
-        info("Submitting transaction… Confirm in your wallet");
-        const tx = await presale.buy({ value });
-        info("Pending… " + tx.hash);
-        await tx.wait();
-        ok("Purchase confirmed");
-        await window.EXWIFE_refreshRaised?.();
-      } catch (e) {
-        if (String(e?.code) === "ACTION_REJECTED") err("Transaction rejected");
-        else err((e?.shortMessage)||e?.message||"Transaction failed");
-      } finally {
-        window.__ALLOW_BUY_CALL__ = false; setPending(false);
-      }
-    };
-    window.handleBuy.__G94_BUILTIN__ = true;
-  };
-
-  const wrapHandleBuy = () => {
-    const base = window.handleBuy;
-    if (typeof base !== "function" || base.__G94_WRAPPED__) return;
-    async function safe(){ window.__ALLOW_BUY_CALL__ = true; try { await base(); } finally { window.__ALLOW_BUY_CALL__ = false; } }
-    safe.__G94_WRAPPED__ = true; window.handleBuy = safe;
-  };
-
-  const rewire = () => {
-    const cloneWire = (el, fn) => {
-      if (!el || el.__G94_WIRED__) return el;
-      const clean = el.cloneNode(true); el.replaceWith(clean);
-      clean.addEventListener("click", (e)=>{ e?.preventDefault?.(); fn(); });
-      clean.__G94_WIRED__ = true; return clean;
-    };
-
-    const buy = byId("buyBtn") || document.querySelector('[data-action="buy"], button.buy, a.buy');
-    cloneWire(buy, () => window.handleBuy());
-
-    const refresh = byId("refreshBtn") || byId("refresh")
-      || document.querySelector('[data-action="refresh"], [data-refresh], button.refresh, a.refresh');
-    const doRefresh = (typeof window.EXWIFE_refreshRaised === "function")
-      ? window.EXWIFE_refreshRaised
-      : (async () => { (window.toast?.info || console.info)("Refreshed."); });
-    cloneWire(refresh, () => { try { doRefresh(); } catch(e){ console.warn("refresh failed:", e); } });
-
-    const el = amtEl();
-    if (el) {
-      if (el.value?.trim() === "0.01") el.value = "";
-      if (!el.min || Number(el.min) < 0.001) el.min = "0.001";
-      el.placeholder = el.placeholder || "0.001";
-      el.autocomplete = "off";
-    }
-
-    let maxBtn = byId("maxBtn") || document.querySelector('[data-action="max"]');
-    if (!maxBtn && el) {
-      maxBtn = document.createElement("button");
-      maxBtn.id = "maxBtn"; maxBtn.type = "button"; maxBtn.textContent = "Max";
-      maxBtn.style.marginLeft = "0.5rem"; el.insertAdjacentElement("afterend", maxBtn);
-    }
-    if (maxBtn && !maxBtn.__G94_WIRED__) {
-      maxBtn.addEventListener("click", async () => {
-        try {
-          const provider = window.ethereum
-            ? new ethers.BrowserProvider(window.ethereum)
-            : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
-          let fee, gp; try { fee = await provider.getFeeData(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
-          const signer = await provider.getSigner();
-          const bal = await provider.getBalance(await signer.getAddress());
-          const reserve = 200000n * gp; const minWei = ethers.parseEther("0.001");
-          const spend = (bal > reserve ? (bal - reserve) : 0n);
-          if (spend < minWei) { (window.toast?.error||console.error)("Balance too low for 0.001 ETH after gas reserve"); return; }
-          const eth = ethers.formatEther(spend); if (el) el.value = String(Number(eth).toFixed(4));
-        } catch (e) { (window.toast?.error||console.error)("Couldn't compute max amount"); }
-      });
-      maxBtn.__G94_WIRED__ = true;
-    }
-  };
-
-  const start = () => { ensureHandleBuy(); wrapHandleBuy(); rewire(); };
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
-  }
-
-  window.__G94_APPLIED__ = true;
-})();
-</script>
-<script>
-(function(){
-  const byId = id => document.getElementById(id);
-  const amtEl = () =>
-    byId("buyAmount") ||
-    byId("ethAmount") ||
-    document.querySelector("#amount,[name=amount],input[id*='amount' i],input[name*='amount' i]");
-  const buy = byId("buyBtn") || document.querySelector("[data-action='buy'],button.buy,a.buy");
-  const fmt = v => (Number.isFinite(v) && v > 0 ? `Buy ${v.toFixed(3)} ETH` : "Buy");
-  const valid = v => Number.isFinite(v) && v >= 0.001;
-  const read = () => {
-    const el = amtEl();
-    return parseFloat((el?.value || "").replace(",", "."));
-  };
-  const sync = () => {
-    const v = read();
-    if (buy) { buy.textContent = fmt(v); buy.disabled = !valid(v); }
-  };
-  document.addEventListener("input", (e) => { if (e.target === amtEl()) sync(); }, true);
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", sync, { once: true });
-  } else {
-    sync();
-  }
-})();
-</script>
-<script>
-(function(){
-  const byId = id => document.getElementById(id);
-  const getAmt = () =>
-    byId("buyAmount") ||
-    byId("ethAmount") ||
-    document.querySelector("#amount,[name=amount],input[id*='amount' i],input[name*='amount' i]");
-  const getBuy = () =>
-    byId("buyBtn") ||
-    document.querySelector("[data-action='buy'],button.buy,a.buy");
-
-  // Normalize commas, NBSP, and stray characters
-  const parseEth = (raw) => {
-    if (!raw) return NaN;
-    const cleaned = String(raw)
-      .replace(/\u00a0/g, " ")    // NBSP -> space
-      .replace(/[^\d.,-]/g, "")   // keep digits, dot, comma, dash
-      .replace(",", ".")          // comma decimal -> dot
-      .trim();
-    const n = parseFloat(cleaned);
-    return Number.isFinite(n) ? n : NaN;
-  };
-
-  const fmt = (v) => (Number.isFinite(v) && v > 0 ? `Buy ${v.toFixed(3)} ETH` : "Buy");
-  const isValid = (v) => Number.isFinite(v) && v >= 0.001;
-
-  const sync = () => {
-    const amtEl = getAmt();
-    const buyEl = getBuy();
-    if (!buyEl) return;
-    const num = parseEth(amtEl?.value || "");
-    buyEl.textContent = fmt(num);
-    buyEl.disabled = !isValid(num);
-  };
-
-  // React to *lots* of events to catch late autofill / restored form values
-  const wire = () => {
-    const amtEl = getAmt();
-    const buyEl = getBuy();
-
-    // Enforce sane attrs on the amount input
-    if (amtEl) {
-      if (!amtEl.min || Number(amtEl.min) < 0.001) amtEl.min = "0.001";
-      amtEl.autocomplete = "off";  // discourage browser restoring stale value labels
-      amtEl.inputMode = "decimal";
-      amtEl.placeholder = amtEl.placeholder || "0.001";
-    }
-
-    // Input/change listeners (don’t rely on strict node equality)
-    document.addEventListener("input", sync, true);
-    document.addEventListener("change", sync, true);
-
-    // Lifecycle events that often follow browser restore
-    window.addEventListener("pageshow", sync, { once: false });
-    document.addEventListener("visibilitychange", sync, false);
-    window.addEventListener("focus", sync, false);
-    document.addEventListener("focusin", sync, false);
-
-    // A few delayed passes to catch *really* late autofill
-    setTimeout(sync, 0);
-    setTimeout(sync, 250);
-    setTimeout(sync, 1000);
-
-    // Initial pass
-    sync();
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", wire, { once: true });
-  } else {
-    wire();
-  }
-})();
-</script>
 </body>
 <script type="module">
 (() => {
-  if (window.__FINAL_BUY_MODULE__) return;
+  // Skip if handleBuy already exists (don’t double-wire)
+  if (typeof window.handleBuy === "function" && window.__G9_WIRED__) return;
 
-  // ---------- helpers ----------
-  const byId = (id) => document.getElementById(id);
-  const q = (sel) => document.querySelector(sel);
-  const amtEl = () =>
-    byId("buyAmount") ||
-    byId("ethAmount") ||
-    q("#amount, [name=amount], input[id*='amount' i], input[name*='amount' i]");
+  async function handleBuy(){
+    const toast = (window.toast||{});
+    const info = toast.info?.bind(toast) || ((m)=>console.info("[info]",m));
+    const ok   = toast.success?.bind(toast) || ((m)=>console.log("[ok]",m));
+    const err  = toast.error?.bind(toast) || ((m)=>console.error("[error]",m));
 
-  const toast = (window.toast || {});
-  const info = toast.info?.bind(toast) || ((m)=>console.info("[info]", m));
-  const ok   = toast.success?.bind(toast) || ((m)=>console.log("[ok]", m));
-  const err  = toast.error?.bind(toast) || ((m)=>console.error("[error]", m));
+    const amtEl = document.getElementById("ethAmount")
+      || document.querySelector("#amount, [name=amount], input[type=number][min]");
+    const buyBtn = document.getElementById("buyBtn");
 
-  const readEth = () => {
-    const el = amtEl();
-    const raw = (el?.value ?? "").replace(",", ".").trim();
-    return { el, raw, num: Number.parseFloat(raw) };
-  };
-
-  // ---------- block auto-buy unless via our handler ----------
-  try {
-    if (window.ethers?.Contract && !window.ethers.Contract.__FINAL_PATCHED__) {
-      const C = window.ethers.Contract;
-      const orig = C.prototype.buy;
-      if (typeof orig === "function") {
-        C.prototype.buy = function(...args){
-          if (!window.__ALLOW_BUY_CALL__) {
-            const e = new Error("Auto-buy blocked");
-            e.code = "AUTO_BUY_BLOCKED";
-            throw e;
-          }
-          return orig.apply(this, args);
-        };
-        C.__FINAL_PATCHED__ = true;
-      }
-    }
-  } catch(_) {}
-
-  // ---------- label updater ----------
-  const labelFmt = (v) => (Number.isFinite(v) && v > 0 ? `Buy ${v.toFixed(3)} ETH` : "Buy now");
-  const validAmt = (v) => Number.isFinite(v) && v >= 0.001;
-  const syncLabelAndDisable = () => {
-    const { el, num } = readEth();
-    const buy = byId("buyBtn") || q("[data-action='buy'], button.buy, a.buy");
-    if (buy) buy.textContent = labelFmt(num);
-    if (buy) buy.disabled = !validAmt(num);
-    if (el) {
-      if (!el.min || Number(el.min) < 0.001) el.min = "0.001";
-      el.placeholder = el.placeholder || "0.001";
-      el.autocomplete = "off";
-    }
-  };
-
-  // ---------- compute max ----------
-  async function fillMax() {
-    const el = amtEl();
-    if (!el) return;
-    try {
-      const provider = window.ethereum
-        ? new ethers.BrowserProvider(window.ethereum)
-        : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
-
-      // feeData with fallback to legacy gasPrice for older RPCs
-      let gp = 0n;
-      try {
-        const fee = await provider.getFeeData();
-        gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
-      } catch {
-        try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
-      }
-
-      const signer = await provider.getSigner();
-      const bal = await provider.getBalance(await signer.getAddress());
-      const reserve = 200000n * gp; // ~200k gas reserve
-      const minWei  = ethers.parseEther("0.001");
-      const spend   = (bal > reserve ? (bal - reserve) : 0n);
-      if (spend < minWei) { err("Balance too low for 0.001 ETH after gas reserve"); return; }
-      const eth = Number(ethers.formatEther(spend));
-      el.value = String(eth.toFixed(4));
-      syncLabelAndDisable();
-    } catch {
-      err("Couldn't compute max amount");
-    }
-  }
-
-  // ---------- main buy handler ----------
-  async function handleBuy() {
-    const { raw, num } = readEth();
-    if (!raw) { err("Enter an amount in ETH."); return; }
-    if (!Number.isFinite(num) || num < 0.001) { err("Enter an amount ≥ 0.001 ETH"); return; }
+    const raw = (amtEl?.value||"").trim();
+    const amt = Number(raw);
+    if (!isFinite(amt) || amt < 0.001) { err("Enter an amount ≥ 0.001 ETH"); return; }
 
     const provider = window.ethereum
       ? new ethers.BrowserProvider(window.ethereum)
       : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
 
-    let signer;
-    try { signer = await provider.getSigner(); }
-    catch { err("No wallet connected."); return; }
-
+    let signer; try { signer = await provider.getSigner(); } catch(e){ err("No wallet connected."); return; }
     const net = await provider.getNetwork();
     if (String(net.chainId) !== "1") { await window.updateNetworkPill?.(); err("Please switch to Ethereum Mainnet."); return; }
 
     const PRESALE = (window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale);
     const ABI = (window.PRESALE_ABI_MIN || window.PRESALE_ABI);
     if (!PRESALE || !ABI) { err("Presale config missing."); return; }
-
     const presale = new ethers.Contract(PRESALE, ABI, signer);
-    try { if (await presale.paused?.()) { err("Presale is paused."); return; } } catch {}
 
-    const value = ethers.parseEther(String(num));
+    try { if (await presale.paused?.()) { err("Presale is paused."); return; } } catch(_){}
 
-    // estimate gas
+    const value = ethers.parseEther(String(amt));
     let gas;
-    try { gas = await presale.buy.estimateGas({ value }); }
-    catch (e) { err(e?.shortMessage || "Buy not available. Check amount/network."); return; }
-
-    // fee/gas price with fallback
-    let gp = 0n;
     try {
-      const fee = await provider.getFeeData();
-      gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
-    } catch {
-      try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
+      gas = await presale.buy.estimateGas({ value });
+    } catch (e) {
+      err((e?.shortMessage)||"Buy not available. Check amount/network.");
+      return;
     }
-
+    const fee = await provider.getFeeData();
+    const gp  = (fee.maxFeePerGas || fee.gasPrice || 0n);
     const gasCost = gas * gp;
     const needWei = gasCost + value;
     const bal = await provider.getBalance(await signer.getAddress());
     if (bal < needWei) { err("Insufficient funds for amount + gas"); return; }
 
-    const buyBtn = byId("buyBtn") || q("[data-action='buy'], button.buy, a.buy");
-    const setPending = (v)=>{ try { if (buyBtn) buyBtn.disabled = !!v; } catch {} };
-
-    window.__ALLOW_BUY_CALL__ = true;
+    const setPending = (v)=>{ try{ if(buyBtn) buyBtn.disabled = !!v; }catch(_){} };
     setPending(true);
     try {
       info("Submitting transaction… Confirm in your wallet");
@@ -1010,76 +662,325 @@ async function EXWIFE_refreshRaised() {
       await window.EXWIFE_refreshRaised?.();
     } catch (e) {
       if (String(e?.code) === "ACTION_REJECTED") err("Transaction rejected");
-      else err(e?.shortMessage || e?.message || "Transaction failed");
+      else err((e?.shortMessage)||e?.message||"Transaction failed");
     } finally {
-      window.__ALLOW_BUY_CALL__ = false;
       setPending(false);
     }
   }
+  window.handleBuy = window.handleBuy || handleBuy;
 
-  // wrap to enforce auto-buy guard
-  if (!handleBuy.__FINAL_WRAPPED__) {
-    const base = handleBuy;
-    async function safe(){ window.__ALLOW_BUY_CALL__ = true; try { await base(); } finally { window.__ALLOW_BUY_CALL__ = false; } }
-    safe.__FINAL_WRAPPED__ = true;
-    window.handleBuy = safe;
-  }
+  // Gate 8 wiring + Gate 9 Max
+  if (!window.__G9_WIRED__) {
+    document.addEventListener("DOMContentLoaded", () => {
+      const buyBtn = document.getElementById("buyBtn");
+      if (buyBtn && !buyBtn.__wiredG9) {
+        buyBtn.addEventListener("click", (e) => { e.preventDefault?.(); handleBuy().catch(console.error); });
+        buyBtn.__wiredG9 = true;
+      }
+      const rBtn = document.getElementById("refreshBtn");
+      const doRefresh = (typeof window.EXWIFE_refreshRaised === "function") ? window.EXWIFE_refreshRaised : () => {};
+      if (rBtn && !rBtn.__wiredG9) {
+        rBtn.addEventListener("click", (e) => { e.preventDefault?.(); doRefresh().catch?.(console.error); });
+        rBtn.__wiredG9 = true;
+      }
 
-  // ---------- wiring ----------
-  const wire = () => {
-    // input label + disable
-    document.addEventListener("input", (e) => {
-      if (e.target === amtEl()) syncLabelAndDisable();
-    }, true);
-
-    // initial sync
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", syncLabelAndDisable, { once: true });
-    } else {
-      syncLabelAndDisable();
-    }
-
-    // Buy button
-    const buy = byId("buyBtn") || q("[data-action='buy'], button.buy, a.buy");
-    if (buy && !buy.__FINAL_WIRED__) {
-      const clean = buy.cloneNode(true);
-      buy.replaceWith(clean);
-      clean.addEventListener("click", (e) => { e?.preventDefault?.(); window.handleBuy(); });
-      clean.__FINAL_WIRED__ = true;
-    }
-
-    // Refresh
-    const refresh = byId("refreshBtn") || byId("refresh") || q("[data-action='refresh'], [data-refresh], button.refresh, a.refresh");
-    const doRefresh = (typeof window.EXWIFE_refreshRaised === "function")
-      ? window.EXWIFE_refreshRaised
-      : (async () => { (window.toast?.info || console.info)("Refreshed."); });
-    if (refresh && !refresh.__FINAL_WIRED__) {
-      const clean = refresh.cloneNode(true);
-      refresh.replaceWith(clean);
-      clean.addEventListener("click", (e) => { e?.preventDefault?.(); try { doRefresh(); } catch (e) { console.warn("refresh failed:", e); } });
-      clean.__FINAL_WIRED__ = true;
-    }
-
-    // Max button
-    const el = amtEl();
-    if (el) {
-      let maxBtn = byId("maxBtn") || q("[data-action='max']");
-      if (!maxBtn) {
+      // Max button
+      const amtEl = document.getElementById("ethAmount")
+        || document.querySelector("#amount, [name=amount], input[type=number][min]");
+      let maxBtn = document.getElementById("maxBtn");
+      if (!maxBtn && amtEl) {
         maxBtn = document.createElement("button");
         maxBtn.id = "maxBtn"; maxBtn.type = "button"; maxBtn.textContent = "Max";
         maxBtn.style.marginLeft = "0.5rem";
-        el.insertAdjacentElement("afterend", maxBtn);
+        amtEl.insertAdjacentElement("afterend", maxBtn);
       }
-      if (!maxBtn.__FINAL_WIRED__) {
-        maxBtn.addEventListener("click", fillMax);
-        maxBtn.__FINAL_WIRED__ = true;
+      if (maxBtn && !maxBtn.__wiredG9) {
+        maxBtn.addEventListener("click", async () => {
+          try {
+            const provider = window.ethereum
+              ? new ethers.BrowserProvider(window.ethereum)
+              : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
+            const fee = await provider.getFeeData();
+            const gp  = (fee.maxFeePerGas || fee.gasPrice || 0n);
+            const signer = await provider.getSigner();
+            const bal = await provider.getBalance(await signer.getAddress());
+            const reserve = 200000n * gp;               // ~200k gas reserve
+            const minWei  = ethers.parseEther("0.001"); // site minimum
+            const spend   = (bal > reserve ? (bal - reserve) : 0n);
+            if (spend < minWei) { (window.toast?.error||console.error)("Balance too low for 0.001 ETH after gas reserve"); return; }
+            const eth = ethers.formatEther(spend);
+            if (amtEl) amtEl.value = String(Number(eth).toFixed(4));
+          } catch (e) {
+            (window.toast?.error||console.error)("Couldn't compute max amount");
+          }
+        });
+        maxBtn.__wiredG9 = true;
       }
+    });
+    window.__G9_WIRED__ = true;
+  }
+})();
+</script>
+</html>
+
+<!-- Gate 9.2 overrides: block auto-buy, fix amount selector, rewire buttons safely -->
+<script type="module">
+(() => {
+  if (window.__G92_APPLIED__) return;
+
+  // ---- 1) BLOCK AUTO-BUY unless invoked via our handleBuy ----
+  const patchBuy = () => {
+    try {
+      if (!window.ethers?.Contract || window.ethers.Contract.__G92_PATCHED__) return;
+      const C = window.ethers.Contract;
+      const origBuy = C.prototype.buy;
+      if (typeof origBuy !== "function") return;
+      C.prototype.buy = function(...args){
+        if (!window.__ALLOW_BUY_CALL__) {
+          console.warn("[G9.2] Blocked auto-buy attempt");
+          const e = new Error("Auto-buy blocked");
+          e.code = "AUTO_BUY_BLOCKED";
+          throw e;
+        }
+        return origBuy.apply(this, args);
+      };
+      C.__G92_PATCHED__ = true;
+    } catch (_) {}
+  };
+
+  // ---- 2) Our safe handleBuy wrapper sets ALLOW flag just-in-time ----
+  const installSafeHandle = () => {
+    const baseHandle = window.handleBuy;
+    if (typeof baseHandle !== "function") return;
+    if (window.handleBuy.__G92_WRAPPED__) return;
+
+    async function safeHandleBuy(){
+      window.__ALLOW_BUY_CALL__ = true;
+      try { await baseHandle(); }
+      finally { window.__ALLOW_BUY_CALL__ = false; }
+    }
+    safeHandleBuy.__G92_WRAPPED__ = true;
+    window.handleBuy = safeHandleBuy;
+  };
+
+  // ---- 3) Fix amount element & clear any 0.01 default live in DOM ----
+  const getAmtEl = () => {
+    return document.getElementById("buyAmount")
+        || document.getElementById("ethAmount")
+        || document.querySelector("#amount, [name=amount], input[id*='amount' i], input[name*='amount' i]");
+  };
+
+  const clearDefaultAmount = () => {
+    const el = getAmtEl();
+    if (!el) return;
+    if (el.value && el.value.trim() === "0.01") el.value = "";
+    // Optional: enforce min attr if missing
+    if (!el.min || Number(el.min) < 0.001) el.min = "0.001";
+    el.placeholder = el.placeholder || "0.001";
+    // Prevent browsers autofilling old value on reload
+    el.autocomplete = "off";
+  };
+
+  // ---- 4) Rewire buttons: remove old listeners by cloning, then attach ours ----
+  const selectBuyBtn = () =>
+    document.getElementById("buyBtn")
+      || document.querySelector('[data-action="buy"], button#buy, button.buy, a.buy');
+
+  const selectRefreshBtn = () =>
+    document.getElementById("refreshBtn")
+      || document.getElementById("refresh")
+      || document.querySelector('[data-action="refresh"], [data-refresh], button.refresh, a.refresh');
+
+  const rewireButton = (btn, onClick) => {
+    if (!btn) return null;
+    if (btn.__G92_WIRED__) return btn;
+    const clean = btn.cloneNode(true);     // nukes previous listeners
+    btn.replaceWith(clean);
+    clean.addEventListener("click", (e) => { e?.preventDefault?.(); onClick(); });
+    clean.__G92_WIRED__ = true;
+    return clean;
+  };
+
+  // ---- 5) Add/rewire Max button next to the amount input ----
+  const ensureMaxButton = (amtEl) => {
+    if (!amtEl) return;
+    let maxBtn = document.getElementById("maxBtn") || document.querySelector('[data-action="max"]');
+    if (!maxBtn) {
+      maxBtn = document.createElement("button");
+      maxBtn.id = "maxBtn";
+      maxBtn.type = "button";
+      maxBtn.textContent = "Max";
+      maxBtn.style.marginLeft = "0.5rem";
+      amtEl.insertAdjacentElement("afterend", maxBtn);
+    }
+    if (!maxBtn.__G92_WIRED__) {
+      maxBtn.addEventListener("click", async () => {
+        try {
+          const provider = window.ethereum
+            ? new ethers.BrowserProvider(window.ethereum)
+            : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
+          const fee = await provider.getFeeData();
+          const gp  = (fee.maxFeePerGas || fee.gasPrice || 0n);
+          const signer = await provider.getSigner();
+          const bal = await provider.getBalance(await signer.getAddress());
+          const reserve = 200000n * gp;
+          const minWei  = ethers.parseEther("0.001");
+          const spend   = (bal > reserve ? (bal - reserve) : 0n);
+          if (spend < minWei) { (window.toast?.error||console.error)("Balance too low for 0.001 ETH after gas reserve"); return; }
+          const eth = ethers.formatEther(spend);
+          amtEl.
+cd ~/Desktop/exwifetoken2/web
+FILE="./index.html"  # this is the served file per your grep marks
+
+# Backup
+cp -f "$FILE" "$FILE.bakG9_overrides.$(date +%s)"
+
+# Append a LAST script module that overrides behavior safely & idempotently
+cat >> "$FILE" <<'HTML'
+<!-- Gate 9.2 overrides: block auto-buy, fix amount selector, rewire buttons safely -->
+<script type="module">
+(() => {
+  if (window.__G92_APPLIED__) return;
+
+  // ---- 1) BLOCK AUTO-BUY unless invoked via our handleBuy ----
+  const patchBuy = () => {
+    try {
+      if (!window.ethers?.Contract || window.ethers.Contract.__G92_PATCHED__) return;
+      const C = window.ethers.Contract;
+      const origBuy = C.prototype.buy;
+      if (typeof origBuy !== "function") return;
+      C.prototype.buy = function(...args){
+        if (!window.__ALLOW_BUY_CALL__) {
+          console.warn("[G9.2] Blocked auto-buy attempt");
+          const e = new Error("Auto-buy blocked");
+          e.code = "AUTO_BUY_BLOCKED";
+          throw e;
+        }
+        return origBuy.apply(this, args);
+      };
+      C.__G92_PATCHED__ = true;
+    } catch (_) {}
+  };
+
+  // ---- 2) Our safe handleBuy wrapper sets ALLOW flag just-in-time ----
+  const installSafeHandle = () => {
+    const baseHandle = window.handleBuy;
+    if (typeof baseHandle !== "function") return;
+    if (window.handleBuy.__G92_WRAPPED__) return;
+
+    async function safeHandleBuy(){
+      window.__ALLOW_BUY_CALL__ = true;
+      try { await baseHandle(); }
+      finally { window.__ALLOW_BUY_CALL__ = false; }
+    }
+    safeHandleBuy.__G92_WRAPPED__ = true;
+    window.handleBuy = safeHandleBuy;
+  };
+
+  // ---- 3) Fix amount element & clear any 0.01 default live in DOM ----
+  const getAmtEl = () => {
+    return document.getElementById("buyAmount")
+        || document.getElementById("ethAmount")
+        || document.querySelector("#amount, [name=amount], input[id*='amount' i], input[name*='amount' i]");
+  };
+
+  const clearDefaultAmount = () => {
+    const el = getAmtEl();
+    if (!el) return;
+    if (el.value && el.value.trim() === "0.01") el.value = "";
+    // Optional: enforce min attr if missing
+    if (!el.min || Number(el.min) < 0.001) el.min = "0.001";
+    el.placeholder = el.placeholder || "0.001";
+    // Prevent browsers autofilling old value on reload
+    el.autocomplete = "off";
+  };
+
+  // ---- 4) Rewire buttons: remove old listeners by cloning, then attach ours ----
+  const selectBuyBtn = () =>
+    document.getElementById("buyBtn")
+      || document.querySelector('[data-action="buy"], button#buy, button.buy, a.buy');
+
+  const selectRefreshBtn = () =>
+    document.getElementById("refreshBtn")
+      || document.getElementById("refresh")
+      || document.querySelector('[data-action="refresh"], [data-refresh], button.refresh, a.refresh');
+
+  const rewireButton = (btn, onClick) => {
+    if (!btn) return null;
+    if (btn.__G92_WIRED__) return btn;
+    const clean = btn.cloneNode(true);     // nukes previous listeners
+    btn.replaceWith(clean);
+    clean.addEventListener("click", (e) => { e?.preventDefault?.(); onClick(); });
+    clean.__G92_WIRED__ = true;
+    return clean;
+  };
+
+  // ---- 5) Add/rewire Max button next to the amount input ----
+  const ensureMaxButton = (amtEl) => {
+    if (!amtEl) return;
+    let maxBtn = document.getElementById("maxBtn") || document.querySelector('[data-action="max"]');
+    if (!maxBtn) {
+      maxBtn = document.createElement("button");
+      maxBtn.id = "maxBtn";
+      maxBtn.type = "button";
+      maxBtn.textContent = "Max";
+      maxBtn.style.marginLeft = "0.5rem";
+      amtEl.insertAdjacentElement("afterend", maxBtn);
+    }
+    if (!maxBtn.__G92_WIRED__) {
+      maxBtn.addEventListener("click", async () => {
+        try {
+          const provider = window.ethereum
+            ? new ethers.BrowserProvider(window.ethereum)
+            : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
+          const fee = await provider.getFeeData();
+          const gp  = (fee.maxFeePerGas || fee.gasPrice || 0n);
+          const signer = await provider.getSigner();
+          const bal = await provider.getBalance(await signer.getAddress());
+          const reserve = 200000n * gp;
+          const minWei  = ethers.parseEther("0.001");
+          const spend   = (bal > reserve ? (bal - reserve) : 0n);
+          if (spend < minWei) { (window.toast?.error||console.error)("Balance too low for 0.001 ETH after gas reserve"); return; }
+          const eth = ethers.formatEther(spend);
+          amtEl.value = String(Number(eth).toFixed(4));
+        } catch (e) {
+          (window.toast?.error||console.error)("Couldn't compute max amount");
+        }
+      });
+      maxBtn.__G92_WIRED__ = true;
     }
   };
 
-  wire();
-  window.__FINAL_BUY_MODULE__ = true;
-})();
+  // ---- 6) Wire everything on DOM ready ----
+  const onReady = () => {
+    patchBuy();
+    installSafeHandle();
+    clearDefaultAmount();
 
+    const amtEl = getAmtEl();
+    ensureMaxButton(amtEl);
+
+    // If handleBuy wasn't defined (edge), create a minimal one using our amount
+    if (typeof window.handleBuy !== "function") {
+      window.handleBuy = async () => {
+        (window.toast?.error||console.error)("Buy is not available yet. Please refresh.");
+      };
+      window.handleBuy.__G92_WRAPPED__ = true;
+    }
+
+    // Rewire Buy
+    const buyBtn = rewireButton(selectBuyBtn(), () => window.handleBuy());
+    // Rewire Refresh
+    const doRefresh = (typeof window.EXWIFE_refreshRaised === "function") ? window.EXWIFE_refreshRaised : () => {};
+    rewireButton(selectRefreshBtn(), () => { try { doRefresh(); } catch (e) { console.warn("refresh failed:", e); } });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", onReady, { once: true });
+  } else {
+    onReady();
+  }
+
+  window.__G92_APPLIED__ = true;
+})();
 </script>
-</html>

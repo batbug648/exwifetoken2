@@ -93,3 +93,190 @@ img.hero{display:block; width:100%; border-radius:20px}
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+/* ===========================
+   GATE7 — Mobile & Responsive
+   =========================== */
+
+/* 2.1 Root scales & safe area paddings */
+:root {
+  --ui-max-width: 1200px;          /* keeps desktop tidy */
+  --ui-side-pad: 16px;             /* default mobile pad */
+  --ui-gap: 12px;
+  --ui-radius: 16px;
+  --ui-tap-min: 44px;              /* a11y min hit size */
+}
+
+/* iOS safe area support */
+body {
+  padding-left:  max(env(safe-area-inset-left),  var(--ui-side-pad));
+  padding-right: max(env(safe-area-inset-right), var(--ui-side-pad));
+  padding-top:   max(env(safe-area-inset-top),   12px);
+  padding-bottom:max(env(safe-area-inset-bottom),16px);
+}
+
+/* 2.2 Container — center & clamp */
+.container,
+.page,
+.main,
+.wrapper {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: var(--ui-max-width);
+  padding-left:  var(--ui-side-pad);
+  padding-right: var(--ui-side-pad);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 2.3 Fluid hero image */
+.hero img,
+img.hero,
+#hero img,
+img.responsive {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: var(--ui-radius);
+}
+
+/* 2.4 Headings & type rhythm */
+h1 { font-size: clamp(28px, 6vw, 44px); line-height: 1.1; margin: 0.6em 0 0.4em; }
+h2 { font-size: clamp(22px, 4.8vw, 32px); line-height: 1.2; margin: 0.8em 0 0.5em; }
+p, li, span, label, .text { font-size: clamp(15px, 3.6vw, 18px); line-height: 1.5; }
+
+/* 2.5 Buttons — tap-friendly */
+button,
+.button,
+.btn,
+#buyBtn,
+#connectBtn,
+#ownerToggle {
+  min-height: var(--ui-tap-min);
+  padding: 12px 16px;
+  border-radius: var(--ui-radius);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Make the whole button area easy to hit on mobile */
+button > * { pointer-events: none; }
+
+/* 2.6 Controls bar — stack on small screens */
+.controls,
+.cta-row,
+.action-row,
+.header-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ui-gap);
+}
+@media (max-width: 480px) {
+  .controls,
+  .cta-row,
+  .action-row,
+  .header-actions {
+    grid-template-columns: 1fr; /* vertical stack */
+  }
+}
+
+/* 2.7 Progress bar — robust sizing */
+.progress,
+#progressBar,
+.progress-wrap {
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--ui-radius);
+  overflow: hidden;
+}
+.progress .bar,
+#progressInner {
+  height: 12px;
+  min-height: 12px;
+  transition: width 300ms ease, background-color 200ms ease;
+}
+
+/* 2.8 Toasts — clamp width & position for small screens */
+.toast,
+.toast-success,
+.toast-error,
+#toast {
+  max-width: min(92vw, 420px);
+  width: max-content;
+  padding: 12px 14px;
+  border-radius: var(--ui-radius);
+  box-sizing: border-box;
+  word-wrap: break-word;
+}
+.toast-container,
+#toastContainer {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-container > * { pointer-events: auto; }
+
+/* 2.9 Tables/cards — scroll instead of overflowing */
+.table-wrap,
+.responsive-table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--ui-radius);
+}
+.card,
+.panel,
+.section {
+  border-radius: var(--ui-radius);
+}
+
+/* 2.10 Prevent layout jump from long addresses/links */
+code, .mono, .hash, .addr, .address, .txid, a {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 2.11 Inputs — comfy size & avoid iOS zoom */
+input, select, textarea {
+  font-size: 16px; /* ≥16px prevents iOS zoom-on-focus */
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+/* 2.12 Network pill — readable on mobile */
+#netPill {
+  font-size: clamp(13px, 3.4vw, 16px);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+/* 2.13 Footer spacing buffer on small screens */
+footer { margin-top: 24px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+
+/* 2.14 Reduce motion—respect user preference */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* GATE7: background-image heroes */
+.hero,
+#hero,
+.section-hero {
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--ui-radius);
+  min-height: clamp(180px, 38vw, 420px);
+}
+
+/* GATE7 — Owner Panel toggle support */
+body:not(.owner-open) #ownerPanel { display: none !important; }
+body.owner-open #ownerPanel { display: block !important; }
+
