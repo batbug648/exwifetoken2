@@ -245,7 +245,7 @@
           <div style="display:flex;gap:8px;align-items:center;background:#1c1d22;border:1px solid #2a2b31;border-radius:10px;padding:6px 8px;">
             <span style="opacity:.8">Amount</span>
             <input id="buyAmount" inputmode="decimal"
-                   style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" / min="0.001">
+                   style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" />
             <span style="opacity:.8">ETH</span>
           </div>
 
@@ -284,43 +284,6 @@
   <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Core logic -->
-<script id="early-toast-guard">(()=>{try{
-    const WANT=(msg)=>!/enter an amount in eth/i.test(String(msg||"")) || (window.__buyIntent===true);
-
-    // Track explicit user intent early (click Buy or press Enter anywhere)
-    window.__buyIntent=false;
-    const arm=()=>{ window.__buyIntent=true; setTimeout(()=>window.__buyIntent=false, 2000); };
-    document.addEventListener("click",(e)=>{ const t=e.target; if(t && (t.id==="buyBtn" || (t.closest && t.closest("#buyBtn")))) arm(); }, true);
-    document.addEventListener("keydown",(e)=>{ if(e.key==="Enter") arm(); }, true);
-
-    // If toast not defined yet, create a buffering stub that filters the empty-amount error
-    if(!window.toast){
-      const buffer=[];
-      window.toast={
-        err:(m,o)=>{ if(WANT(m)) buffer.push(["err",m,o]); },
-        ok:(m,o)=>{ buffer.push(["ok",m,o]); },
-        info:(m,o)=>{ buffer.push(["info",m,o]); }
-      };
-      window.toast.__buffer=buffer;
-    } else {
-      const t=window.toast, orig=t.err && t.err.bind(t);
-      if(orig && !t.__wrappedEarly){
-        t.err=function(m,o){ if(!WANT(m)) return; return orig(m,o); };
-        t.__wrappedEarly=true;
-      }
-    }
-
-    // When page fully loads and real toast is present, flush any buffered toasts
-    window.addEventListener("load", ()=> {
-      try{
-        const t=window.toast;
-        if(t && t.__buffer && Array.isArray(t.__buffer) && !t.__flushed){
-          const buf=t.__buffer; delete t.__buffer; t.__flushed=true;
-          for(const [k,m,o] of buf){ if(k==="err"){ t.err?.(m,o); } else { t[k]?.(m,o); } }
-        }
-      }catch(_){}
-    }, {once:true});
-  }catch(e){ console.warn("early-toast-guard failed:", e); }})();</script>
 <script type="module" id="GATE7_CORE">
   // Gate 7: helper/alias shims so legacy calls keep working
   if (typeof window.setStatus !== "function") { window.setStatus = function (msg) {
@@ -376,7 +339,7 @@
 // Fee lookup with fallbacks (handles nodes without eth_maxPriorityFeePerGas)
 let feePerGas;
 try {
-  const fd = await provider.getGasPrice();               // may call eth_maxPriorityFeePerGas
+  const fd = await provider.getFeeData();               // may call eth_maxPriorityFeePerGas
   feePerGas = (fd?.maxFeePerGas ?? fd?.gasPrice);
 } catch (e) {
   // ignore — we’ll fall back
@@ -703,7 +666,7 @@ async function EXWIFE_refreshRaised() {
       let gas; try { gas = await presale.buy.estimateGas({ value }); }
       catch(e){ err((e?.shortMessage)||"Buy not available. Check amount/network."); return; }
 
-      let fee, gp; try { fee = await provider.getGasPrice(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
+      let fee, gp; try { fee = await provider.getFeeData(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
       const gasCost = gas * gp;
       const needWei = gasCost + value;
       const bal = await provider.getBalance(await signer.getAddress());
@@ -775,7 +738,7 @@ async function EXWIFE_refreshRaised() {
           const provider = window.ethereum
             ? new ethers.BrowserProvider(window.ethereum)
             : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
-          let fee, gp; try { fee = await provider.getGasPrice(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
+          let fee, gp; try { fee = await provider.getFeeData(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
           const signer = await provider.getSigner();
           const bal = await provider.getBalance(await signer.getAddress());
           const reserve = 200000n * gp; const minWei = ethers.parseEther("0.001");
@@ -898,96 +861,6 @@ async function EXWIFE_refreshRaised() {
   }
 })();
 </script>
-<script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i)return;i.setAttribute("placeholder","0.001 (min)");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");const gate=()=>{const v=parseFloat(i.value);if(b)b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i||!b)return;const gate=()=>{const v=parseFloat(i.value);b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script id="safe-buy-guard">(()=>{try{const MIN=0.001;const getInput=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");const i=getInput();if(i&&btn){i.setAttribute("min","0.001");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");if(!i.getAttribute("placeholder"))i.setAttribute("placeholder","0.001 (min)");const gate=()=>{const v=parseFloat(i.value);btn.disabled=!(v>=MIN)};i.addEventListener("input",gate,{passive:true});gate();}const wrap=()=>{if(typeof window.handleBuy==="function"&&!window.handleBuy.__wrapped){const orig=window.handleBuy;window.handleBuy=async function(...args){try{const i2=getInput();const amt=parseFloat(i2?.value??"");if(!(amt>=MIN))return;return await orig.apply(this,args);}catch(e){return await orig.apply(this,args)}};window.handleBuy.__wrapped=true;}}; if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",wrap,{once:true});}else{wrap();}}catch(e){console.warn("safe-buy-guard failed:",e)}})();</script><script id="safe-buy-click-shield">(()=>{try{const MIN=0.001;const getI=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");if(!btn)return;btn.addEventListener("click",(ev)=>{try{const i=getI();const amt=parseFloat(i?.value??"");if(!(amt>=MIN)){ev.preventDefault();ev.stopImmediatePropagation();return false;}}catch(_){}},true);}catch(e){console.warn("safe-buy-click-shield failed:",e)}})();</script><script id="safe-toast-filter">(()=>{try{
-  const MIN=0.001;
-  const getI=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");
-  const btn=document.querySelector("#buyBtn");
-
-  // Track explicit user buy intent (click buy or press Enter inside amount box)
-  window.__buyIntent=false;
-  const arm=()=>{ window.__buyIntent=true; setTimeout(()=>window.__buyIntent=false, 2000); };
-  if(btn){ btn.addEventListener("click", arm, {capture:false}); }
-  const i=getI();
-  if(i){ i.addEventListener("keydown", (e)=>{ if(e.key==="Enter") arm(); }, {capture:false}); }
-
-  // Wrap toast.err to suppress the specific empty-amount message unless intent=true
-  const t=window.toast||{};
-  const origErr=t.err?.bind(t);
-  if(origErr && !t.__wrappedEmptyGuard){
-    t.err=function(msg, opts){
-      try{
-        const isEmptyMsg = /enter an amount in eth/i.test(String(msg||""));
-        if(isEmptyMsg && !window.__buyIntent) return; // silently ignore spurious empty-amount toasts
-      }catch(_){}
-      return origErr(msg, opts);
-    };
-    t.__wrappedEmptyGuard=true;
-  }
-}catch(e){console.warn("safe-toast-filter failed:",e)}})();</script><style id="gate10-a11y-css">
-:root{--ex-ring:2px;--ex-ring-color:rgba(37,99,235,.65)}
-#ex-dock input:focus,#ex-dock button:focus,[data-ex-focus]:focus{
-  outline:var(--ex-ring) solid var(--ex-ring-color); outline-offset:2px;
-}
-</style>
-<script id="gate10-toasts-a11y-js">
-(()=>{try{
-  const 60(s,r=document)=>r.querySelector(s);
-  const i=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#amount")||20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyAmount")||document.querySelector("input");
-  const buy=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyBtn"), max=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#maxBtn"), ref=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#refreshBtn");
-
-  // aria labels + focus handles (idempotent)
-  if(i && !i.getAttribute("aria-label")) i.setAttribute("aria-label","ETH amount to spend (minimum 0.001)");
-  if(buy && !buy.getAttribute("aria-label")) buy.setAttribute("aria-label","Buy EXWIFE");
-  if(max && !max.getAttribute("aria-label")) max.setAttribute("aria-label","Use maximum available ETH");
-  if(ref && !ref.getAttribute("aria-label")) ref.setAttribute("aria-label","Refresh progress");
-  [i,buy,max,ref].forEach(el=>{ if(el) el.setAttribute("data-ex-focus",""); });
-
-  // Suppress only the *first-load* noisy toast
-  const start=Date.now();
-  let firstGesture=false;
-  ["pointerdown","keydown","touchstart","click"].forEach(ev=>{
-    addEventListener(ev,()=>{ firstGesture=true; },{once:true,capture:true});
-  });
-  const dropMsg="Enter an amount in ETH.";
-  const wrap=(name)=>{
-    const fn = (window[name]||window.toast||window.showToast);
-    if(typeof fn!=="function") return;
-    const wrapped=(msg,type="info")=>{
-      const tooEarly = (Date.now()-start)<2000 && !firstGesture && String(msg)===dropMsg;
-      if(tooEarly) return;
-      return fn(msg,type);
-    };
-    window[name]=wrapped;
-    if(name!=="toast") window.toast=wrapped;
-    if(name!=="showToast") window.showToast=wrapped;
-  };
-  ["toast","showToast"].forEach(wrap);
-
-  // Enter-to-buy when valid
-  const min=0.001;
-  const valid = () => {
-    if(!i) return false;
-    const v = parseFloat((i.value||"").trim());
-    return Number.isFinite(v) && v>=min;
-  };
-  if(i && buy){
-    i.addEventListener("keydown",(e)=>{
-      if(e.key==="Enter" && valid()){
-        e.preventDefault();
-        try { buy.click(); } catch {}
-      }
-    }, {passive:false});
-  }
-
-  // Mobile-friendly input hints
-  if(i){
-    i.setAttribute("inputmode","decimal");
-    i.setAttribute("step","0.001");
-    if(!i.getAttribute("min")) i.setAttribute("min","0.001");
-    if(!i.getAttribute("placeholder")) i.setAttribute("placeholder","0.001 (min)");
-  }
-}catch(e){console.warn("gate10-toasts-a11y failed:",e)}})();
-</script>
 </body>
 <script type="module">
 (() => {
@@ -1055,10 +928,10 @@ async function EXWIFE_refreshRaised() {
         ? new ethers.BrowserProvider(window.ethereum)
         : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
 
-      // gasPrice with fallback to legacy gasPrice for older RPCs
+      // feeData with fallback to legacy gasPrice for older RPCs
       let gp = 0n;
       try {
-        const fee = await provider.getGasPrice();
+        const fee = await provider.getFeeData();
         gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
       } catch {
         try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
@@ -1112,7 +985,7 @@ async function EXWIFE_refreshRaised() {
     // fee/gas price with fallback
     let gp = 0n;
     try {
-      const fee = await provider.getGasPrice();
+      const fee = await provider.getFeeData();
       gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
     } catch {
       try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
