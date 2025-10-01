@@ -931,44 +931,44 @@ async function EXWIFE_refreshRaised() {
 </style>
 <script id="gate10-toasts-a11y-js">
 (()=>{try{
-  const 60 (s,r=document)=>r.querySelector(s);
-  const i   = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#amount") || 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyAmount") || document.querySelector("input");
-  const buy = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyBtn"), max = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#maxBtn"), ref = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#refreshBtn");
+  const 60(s,r=document)=>r.querySelector(s);
+  const i=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#amount")||20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyAmount")||document.querySelector("input");
+  const buy=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyBtn"), max=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#maxBtn"), ref=20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#refreshBtn");
 
   // aria labels + focus handles (idempotent)
-  if(i && !i.getAttribute("aria-label"))   i.setAttribute("aria-label","ETH amount to spend (minimum 0.001)");
+  if(i && !i.getAttribute("aria-label")) i.setAttribute("aria-label","ETH amount to spend (minimum 0.001)");
   if(buy && !buy.getAttribute("aria-label")) buy.setAttribute("aria-label","Buy EXWIFE");
   if(max && !max.getAttribute("aria-label")) max.setAttribute("aria-label","Use maximum available ETH");
   if(ref && !ref.getAttribute("aria-label")) ref.setAttribute("aria-label","Refresh progress");
   [i,buy,max,ref].forEach(el=>{ if(el) el.setAttribute("data-ex-focus",""); });
 
   // Suppress only the *first-load* noisy toast
-  const start = Date.now();
-  let firstGesture = false;
+  const start=Date.now();
+  let firstGesture=false;
   ["pointerdown","keydown","touchstart","click"].forEach(ev=>{
-    addEventListener(ev,()=>{ firstGesture=true; }, {once:true, capture:true});
+    addEventListener(ev,()=>{ firstGesture=true; },{once:true,capture:true});
   });
-  const dropMsg = "Enter an amount in ETH.";
-  const wrap = (name)=>{
-    const fn = (window[name] || window.toast || window.showToast);
-    if(typeof fn !== "function") return;
-    const wrapped = (msg, type="info")=>{
-      const tooEarly = (Date.now()-start) < 2000 && !firstGesture && String(msg)===dropMsg;
+  const dropMsg="Enter an amount in ETH.";
+  const wrap=(name)=>{
+    const fn = (window[name]||window.toast||window.showToast);
+    if(typeof fn!=="function") return;
+    const wrapped=(msg,type="info")=>{
+      const tooEarly = (Date.now()-start)<2000 && !firstGesture && String(msg)===dropMsg;
       if(tooEarly) return;
-      return fn(msg, type);
+      return fn(msg,type);
     };
-    window[name] = wrapped;
-    if(name!=="toast") window.toast = wrapped;
-    if(name!=="showToast") window.showToast = wrapped;
+    window[name]=wrapped;
+    if(name!=="toast") window.toast=wrapped;
+    if(name!=="showToast") window.showToast=wrapped;
   };
   ["toast","showToast"].forEach(wrap);
 
   // Enter-to-buy when valid
-  const MIN = 0.001;
-  const valid = ()=>{
+  const min=0.001;
+  const valid = () => {
     if(!i) return false;
     const v = parseFloat((i.value||"").trim());
-    return Number.isFinite(v) && v >= MIN;
+    return Number.isFinite(v) && v>=min;
   };
   if(i && buy){
     i.addEventListener("keydown",(e)=>{
@@ -986,7 +986,7 @@ async function EXWIFE_refreshRaised() {
     if(!i.getAttribute("min")) i.setAttribute("min","0.001");
     if(!i.getAttribute("placeholder")) i.setAttribute("placeholder","0.001 (min)");
   }
-}catch(e){ console.warn("gate10-toasts-a11y failed:", e); }})();
+}catch(e){console.warn("gate10-toasts-a11y failed:",e)}})();
 </script>
 </body>
 <script type="module">
