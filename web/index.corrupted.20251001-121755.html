@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>EXWIFE Token Presale</title>
+
+  <!-- GATE7: mobile viewport + iOS safe-area -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+
+<!-- Modern + legacy support -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <script>
+// GATE4_HEAD_SHIM: defines window.updateNetworkPill early
+(function(){
+  if (typeof window === 'undefined') return;
+
+  // Ensure env defaults
+  window.EXWIFE_ENV = window.EXWIFE_ENV || {
+    network: 'mainnet',
+    presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed'
+  };
+  window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale || window.PRESALE_ADDRESS;
+
+  async function _updateNetworkPill(){
+    const pillEl = document.getElementById('netPill');
+    const buyBtn = document.getElementById('buyBtn');
+    const scanLink = document.getElementById('scanLink');
+
+    let pill = 'Ethereum', buyDisabled = false;
+    try {
+      if (window.ethereum?.request) {
+        const idHex = await window.ethereum.request({ method: 'eth_chainId' }).catch(()=>null);
+        const id = idHex ? parseInt(idHex, 16) : 1;
+        if (id !== 1) { pill = 'Wrong Network'; buyDisabled = true; }
+      } else {
+        pill = 'No Wallet'; buyDisabled = false;
+      }
+    } catch (e) {
+      pill = 'Error'; buyDisabled = true;
+    }
+
+    if (pillEl) pillEl.textContent = pill;
+    if (buyBtn != null) buyBtn.disabled = buyDisabled;
+    if (scanLink) scanLink.href = `https://etherscan.io/address/${window.PRESALE_ADDRESS}`;
+    return { pill, buyDisabled, href: scanLink?.href || null };
+  }
+
+  // Only set if not already defined; otherwise keep existing
+  if (typeof window.updateNetworkPill !== 'function') {
+    window.updateNetworkPill = _updateNetworkPill;
+  }
+
+  // Auto-run once
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.updateNetworkPill());
+  } else {
+    window.updateNetworkPill();
+  }
+})();
+
+
+  // Expose for console/tests
+  try { window.updatePausedPill   = updatePausedPill; }   catch {}
+  try { window.updateNetworkPill  = updateNetworkPill; }  catch {}
+  try { window.EXWIFE_refreshRaised = EXWIFE_refreshRaised; } catch {}
+</script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EXWIFE — Presale (Mainnet)</title>
+
+  <!-- Ethers UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <!-- ENV -->
+  <script>
+    window.EXWIFE_ENV = {
+      network: 'mainnet',
+      rpc: 'https://eth.drpc.org',
+      presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed',
+      token:   '0xd0F4f922891cBfaDB73511df7af66dE15DA93C94',
+      symbol:  'EXWIFE',
+      goalEth: 1200
+    };
+    window.GOAL_ETH = 1200;
+    window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+    window.PRESALE_ABI_MIN = [
+      "function paused() view returns (bool)",
+      "function totalRaisedWei() view returns (uint256)",
+      "function weiRaised() view returns (uint256)",
+      "function buy() payable"
+    ];
+  </script>
+
+  <!-- Minimal styles -->
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto; background:#0e0f12; color:#e7e7ea; margin:0; }
+    .pill { display:inline-block; background:#1c1d22; border:1px solid #2a2b31; padding:6px 10px; border-radius:999px; }
+    .btn { background:#2d6cdf; border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+    .wrap { max-width:680px; margin:40px auto; padding:0 16px; }
+  </style>
+</head>
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- EXWIFE v12.3 + UX POLISH v1: banner/countdown, progress numbers, toasts -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EXWIFE Presale (Mainnet) — v12.3</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/img/exwife-hero.png" />
+
+  <!-- Ethers UMD (single include; no async/defer) -->
+  
+
+  <!-- ENV + minimal ABI -->
+  
+
+  <!-- Safe subscription shim: skip subscribing to missing events -->
+  
+
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; background:#0e0f12; color:#e7e7ea; }
+    .wrap { max-width:680px; margin:40px auto; padding:0 16px; }
+    .card { background:#141417; border:1px solid #222; border-radius:14px; padding:18px; }
+    .row { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .pill { background:#1c1d22; border:1px solid #2a2b31; padding:6px 10px; border-radius:999px; }
+    .btn { background:#2d6cdf; border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .progress { width:100%; height:14px; background:#1a1b20; border:1px solid #2a2b31; border-radius:10px; overflow:hidden; margin-top:8px; }
+    .bar { height:100%; width:2%; background:#22c55e; transition: width .6s ease; }
+    code { background:#101115; border:1px solid #222; padding:2px 6px; border-radius:8px; }
+    .muted { opacity:.85; }
+    a { color:#9bbcff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    input::placeholder { color:#9aa; }
+
+    /* === UX POLISH v1: banner + progress numbers + toasts === */
+    .banner {
+      display:flex; gap:.5rem; align-items:center; justify-content:center;
+      padding:.6rem .9rem; margin:12px auto 14px; max-width:980px;
+      background:#111; color:#fff; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+      font-weight:600;
+    }
+    .banner .countdown { opacity:.9; font-weight:500; }
+
+    .progress-wrap { max-width:900px; margin:10px auto 0; }
+    .progress-head { display:flex; justify-content:space-between; margin-bottom:.35rem; font-weight:600; }
+    .progress-outer {
+      width:100%; height:14px; background:#1a1b20; border:1px solid #2a2b31; border-radius:999px; overflow:hidden;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.08);
+    }
+    .progress-inner { height:100%; width:0%; background:linear-gradient(90deg, #5ac8fa, #34c759, #ffd60a); transition:width .35s ease-in-out; }
+
+    .toast-stack { position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; z-index:9999; }
+    .toast {
+      min-width:260px; max-width:360px; padding:.75rem .9rem; border-radius:12px; color:#fff;
+      background:#333; box-shadow:0 10px 24px rgba(0,0,0,.25); font-weight:600;
+    }
+    .toast.ok { background:#2e7d32; }
+    .toast.err { background:#c62828; }
+    .toast.info { background:#2c3e50; }
+    .toast .sub { display:block; font-weight:500; opacity:.9; margin-top:.15rem; }
+  </style>
+<!-- === GATE5_SEO_BLOCK v1 === -->
+<title>EXWIFE Token — Fair, Fun, and A Little Petty</title>
+<meta name="description" content="EXWIFE (EXWIFE) — a cheeky, fair-launch presale on Ethereum. Buy in, watch the drama, and enjoy the ride.">
+
+<link rel="canonical" href="https://exwifetoken.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://exwifetoken.com/">
+<meta property="og:title" content="EXWIFE Token — Fair, Fun, and A Little Petty">
+<meta property="og:description" content="EXWIFE (EXWIFE) — a cheeky, fair-launch presale on Ethereum.">
+<meta property="og:image" content="https://exwifetoken.com/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="EXWIFE Token — Fair, Fun, and A Little Petty">
+<meta name="twitter:description" content="EXWIFE (EXWIFE) — a cheeky, fair-launch presale on Ethereum.">
+<meta name="twitter:image" content="https://exwifetoken.com/img/social-card.png">
+
+<!-- Icons / PWA (keep your existing favicon.ico; these are additive) -->
+<link rel="icon" type="image/png" sizes="32x32" href="/img/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/img/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/img/icon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<!-- Structured data (minimal) -->
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"WebSite",
+  "name":"EXWIFE Token",
+  "url":"https://exwifetoken.com/",
+  "potentialAction":{
+    "@type":"SearchAction",
+    "target":"https://exwifetoken.com/?q={search_term_string}",
+    "query-input":"required name=search_term_string"
+  }
+}
+</script>
+<!-- === /GATE5_SEO_BLOCK === -->
+
+</head>
+<body>
+
+  <!-- Hero -->
+  <header style="max-width:980px;margin:24px auto 6px;padding:0 12px;text-align:center">
+    <img
+      src="/img/exwife-hero.png"
+      alt="EXWIFE Token"
+      loading="lazy"
+      style="max-width:100%;height:auto;border-radius:16px;display:inline-block;box-shadow:0 6px 24px rgba(0,0,0,.08)"
+    />
+    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Mainnet)</h1>
+    <p style="margin:0;font-size:16px;opacity:.8">Goal: 1200 ETH • Safe, read-only UI until you connect</p>
+  </header>
+
+  <!-- Live banner + countdown -->
+  <div id="presaleBanner" class="banner" role="status" aria-live="polite">
+    <strong>Presale v3 live until Oct 12</strong>
+    <span id="countdown" class="countdown">— calculating…</span>
+  </div>
+
+<h1 style="margin:0 0 6px;">EXWIFE Presale</h1>
+
+    <div class="card">
+      <div class="row">
+        <div class="pill" id="status">Ready</div>
+        <div class="pill" id="netPill" style="background:#3f3f46;border-color:#52525b">No Wallet</div>
+        <div class="row" style="gap:8px;">
+          <button class="btn" id="connectBtn" style="background:#475569">Connect</button>
+
+          <div style="display:flex;gap:8px;align-items:center;background:#1c1d22;border:1px solid #2a2b31;border-radius:10px;padding:6px 8px;">
+            <span style="opacity:.8">Amount</span>
+            <input id="buyAmount" inputmode="decimal"
+                   style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" / min="0.001">
+            <span style="opacity:.8">ETH</span>
+          </div>
+
+          <button class="btn" id="buyBtn">Buy</button>
+          <button class="btn" id="refreshBtn" style="background:#374151">Refresh</button>
+          <a id="txLink" class="pill" href="#" target="_blank" style="display:none;">View tx</a>
+        </div>
+      </div>
+
+      <!-- Progress numbers + improved bar (keeps legacy IDs for compatibility) -->
+      <div style="margin-top:14px;">
+        <div class="progress-head">
+          <span>Raised</span>
+          <span id="progressNumbers">0.000 / 1200 ETH (0.00%)</span>
+        </div>
+        <div class="progress-outer" aria-label="Presale progress">
+          <div id="progressBar" class="progress-inner" style="width:0%"></div>
+        </div>
+
+        <!-- legacy display retained so existing code still paints -->
+        <div style="margin-top:10px">Raised: <strong id="raised">0.0000</strong> / <span id="goal-b">1200</span> ETH</div>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+      </div>
+
+      <div class="muted" style="margin-top:12px; word-break:break-all;">
+        Presale: <code id="addr"></code>
+        <div style="margin-top:6px;font-size:14px">
+          <a id="scanLink" href="https://etherscan.io/address/0xF4A37B656A33d418FB37280c9304274078A9b3ed" target="_blank" rel="noopener">View on Etherscan</a>
+          <button id="copyBtn" style="margin-left:8px;padding:4px 8px;border:1px solid #2a2b31;border-radius:8px;background:#1c1d22;color:#e7e7ea;cursor:pointer">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container (notifications) -->
+  <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Core logic -->
+<script id="early-toast-guard">(()=>{try{
+    const WANT=(msg)=>!/enter an amount in eth/i.test(String(msg||"")) || (window.__buyIntent===true);
+
+    // Track explicit user intent early (click Buy or press Enter anywhere)
+    window.__buyIntent=false;
+    const arm=()=>{ window.__buyIntent=true; setTimeout(()=>window.__buyIntent=false, 2000); };
+    document.addEventListener("click",(e)=>{ const t=e.target; if(t && (t.id==="buyBtn" || (t.closest && t.closest("#buyBtn")))) arm(); }, true);
+    document.addEventListener("keydown",(e)=>{ if(e.key==="Enter") arm(); }, true);
+
+    // If toast not defined yet, create a buffering stub that filters the empty-amount error
+    if(!window.toast){
+      const buffer=[];
+      window.toast={
+        err:(m,o)=>{ if(WANT(m)) buffer.push(["err",m,o]); },
+        ok:(m,o)=>{ buffer.push(["ok",m,o]); },
+        info:(m,o)=>{ buffer.push(["info",m,o]); }
+      };
+      window.toast.__buffer=buffer;
+    } else {
+      const t=window.toast, orig=t.err && t.err.bind(t);
+      if(orig && !t.__wrappedEarly){
+        t.err=function(m,o){ if(!WANT(m)) return; return orig(m,o); };
+        t.__wrappedEarly=true;
+      }
+    }
+
+    // When page fully loads and real toast is present, flush any buffered toasts
+    window.addEventListener("load", ()=> {
+      try{
+        const t=window.toast;
+        if(t && t.__buffer && Array.isArray(t.__buffer) && !t.__flushed){
+          const buf=t.__buffer; delete t.__buffer; t.__flushed=true;
+          for(const [k,m,o] of buf){ if(k==="err"){ t.err?.(m,o); } else { t[k]?.(m,o); } }
+        }
+      }catch(_){}
+    }, {once:true});
+  }catch(e){ console.warn("early-toast-guard failed:", e); }})();</script>
+<script type="module" id="GATE7_CORE">
+  // Gate 7: helper/alias shims so legacy calls keep working
+  if (typeof window.setStatus !== "function") { window.setStatus = function (msg) {
+      try {
+        const s = document.getElementById("status");
+        if (s) s.textContent = String(msg ?? "");
+      } catch (e) { console.debug("setStatus shim:", e); }
+    }
+  }
+  if (typeof window.showToast !== "function") { window.showToast = function (title, subtitle="", kind="info", ms=3000) {
+      try { console.log("[toast]", kind, title, subtitle); } catch {}
+    }
+  }
+  if (typeof buyInline !== "function" && typeof EXWIFE_buyInline === "function") {
+    var buyInline = EXWIFE_buyInline;
+    window.buyInline = buyInline;
+  }
+
+  // Gate 7 core helpers
+  window.EXWIFE_STATE = window.EXWIFE_STATE || {};
+  const el = (id) => document.getElementById(id);
+  const $ = el; // alias
+  const setStatus = (typeof window.setStatus==="function") ? window.setStatus : (msg=>{ try{ const s=document.getElementById("status"); if(s) s.textContent=String(msg??""); }catch{} });
+  const showToast = (typeof window.showToast==="function") ? window.showToast : ((title,subtitle="",kind="info",ms=3000)=>{ try{ console.log("[toast]",kind,title,subtitle); }catch{} });
+  const hasMM = typeof window.ethereum !== "undefined";
+  const RO = () => new ethers.JsonRpcProvider(window.EXWIFE_ENV.rpc);
+  const RW = async () => { if (!hasMM) throw new Error("No wallet"); const p = new ethers.BrowserProvider(window.ethereum); return { provider: p, signer: await p.getSigner() }; }
+  
+(async () => {
+    const { provider, signer } = await RW();
+    const addr    = window.PRESALE_ADDRESS;
+    const abi     = window.PRESALE_ABI_MIN;
+    const presale = new ethers.Contract(addr, abi, signer);
+
+    // Resolve chain id for explorer links
+    const chainIdStr = (await provider.send('eth_chainId', [])).toString();
+
+    // Amount + validation (tune as needed)
+    const raw = (el('buyAmount')?.value || '').trim();
+    const amt = Number(raw);
+    const MIN = 0.001, MAX = 10;
+    if (!isFinite(amt) || amt <= 0) { showToast('Enter an amount in ETH.', '', 'err'); setStatus('Ready'); return; }
+    if (amt < MIN)                  { showToast(`Minimum is ${MIN} ETH`, '', 'err');  setStatus('Ready'); return; }
+    if (amt > MAX)                  { showToast(`Maximum is ${MAX} ETH`, '', 'err');  setStatus('Ready'); return; }
+
+    setStatus('Submitting tx…');
+    showToast('Submitting transaction…', 'Confirm in your wallet', 'info', 3000);
+
+    // --- Preflight balance + gas check ---
+    const fromAddr = await signer.getAddress();
+    const balWei = await provider.getBalance(fromAddr);
+
+// Fee lookup with fallbacks (handles nodes without eth_maxPriorityFeePerGas)
+let feePerGas;
+try {
+  const fd = await provider.getGasPrice();               // may call eth_maxPriorityFeePerGas
+  feePerGas = (fd?.maxFeePerGas ?? fd?.gasPrice);
+} catch (e) {
+  // ignore — we’ll fall back
+}
+if (feePerGas == null) {
+  try { feePerGas = await provider.getGasPrice(); }     // legacy gasPrice
+  catch (e) { /* ignore */ }
+}
+if (feePerGas == null) {
+  feePerGas = 1_000_000_000n;                           // final fallback: 1 gwei
+}
+
+const valueWei  = ethers.parseEther(String(amt));
+
+    // estimate gas for this specific value
+    const gasLimit  = await presale.buy.estimateGas({ value: valueWei });
+    const gasCost   = gasLimit * feePerGas;
+
+    // small buffer for volatility
+    const buffer    = 20_000n * (feePerGas || 1n);
+    const totalCost = valueWei + gasCost + buffer;
+
+    if (balWei < totalCost) {
+      const need = Number(ethers.formatEther(totalCost - balWei));
+      showToast('Insufficient ETH', `Need ~${need.toFixed(6)} more for amount + gas`, 'err', 6000);
+      setStatus('Ready');
+      return;
+    }
+
+  try {    // Send tx
+    const tx = await presale.buy({ value: ethers.parseEther(String(amt)) });
+
+    // Explorer link depends on chain
+    const link = el('txLink');
+    const explorer = (chainIdStr === '11155111') ? 'https://sepolia.etherscan.io' : 'https://etherscan.io';
+    if (link) { link.href = `${explorer}/tx/${tx.hash}`; link.style.display=''; }
+
+    showToast('Buy submitted!', tx.hash.slice(0,10) + '…' + tx.hash.slice(-8), 'ok', 5200);
+    await tx.wait();
+    setStatus('✅ Confirmed');
+    await window.EXWIFE_refreshRaised();
+
+  } catch (e) {
+    console.error('buy() failed:', e);
+    setStatus('❌ Error');
+    const msg = (e?.reason || e?.data?.message || e?.message || String(e));
+    if (/insufficient funds/i.test(msg)) {
+      showToast('Insufficient ETH', 'Top up for gas/amount', 'err', 6000);
+    } else if (/user rejected/i.test(msg)) {
+      showToast('Transaction rejected', '', 'err', 4200);
+    } else {
+      showToast('Buy failed', msg, 'err', 6500);
+    }
+  }
+})();
+
+    // --- Paused pill updater; combines with network pill to control BUY ---
+    async function updatePausedPill(){
+      try {
+        const ro = RO();
+        const c  = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
+        let isPaused = false; try { isPaused = await c.paused(); } catch (e) {}
+        window.EXWIFE_STATE.paused = isPaused;
+        setStatus(isPaused ? 'Paused' : 'Ready');
+        await updateNetworkPill();
+      } catch (e) {}
+    }
+
+    // Countdown banner (America/Chicago close time)
+    const PRESALE_CLOSE_UNIX = Math.floor(new Date('2025-10-12T23:59:59-05:00').getTime() / 1000);
+    (function bannerCountdown(){
+      const countdownEl = document.getElementById('countdown');
+      if (!countdownEl) return;
+      function render() {
+        const now = Math.floor(Date.now() / 1000);
+        let diff = PRESALE_CLOSE_UNIX - now;
+        if (diff <= 0) { countdownEl.textContent = '— closed'; return; }
+        const d = Math.floor(diff / 86400); diff %= 86400;
+        const h = Math.floor(diff / 3600);  diff %= 3600;
+        const m = Math.floor(diff / 60);    const s = diff % 60;
+        countdownEl.textContent = `— ${d}d ${h}h ${m}m ${s}s left`;
+      }
+      render();
+      setInterval(render, 1000);
+    })();
+
+    // Optional: RPC/wallet helpful toasts based on the net pill
+    (function rpcGuard(){
+      const pill = document.getElementById('netPill');
+      if (!pill) return;
+      const check = () => {
+        const t = (pill.textContent || '').trim();
+        if (t.includes('No Wallet')) {
+} else if (t.includes('Wrong')) {
+  showToast('Wrong network', 'Please switch to Ethereum Mainnet (or Sepolia)', 'err', 5000);
+}
+      };
+      setInterval(check, 8000);
+      setTimeout(check, 1500);
+    })();
+
+    // --- Boot ---
+    (function boot(){
+      const addr = window.PRESALE_ADDRESS || '(missing)';
+
+      // Static bits
+      el('addr') && (el('addr').textContent = addr);
+      // Default explorer to Mainnet; will be updated after connect if on Sepolia
+el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`);
+
+      // Listeners
+      el('copyBtn')?.addEventListener('click', () => navigator.clipboard.writeText(addr));
+      el('refreshBtn')?.addEventListener('click', () => EXWIFE_refreshRaised());
+      el('connectBtn')?.addEventListener('click', async () => {
+        if (!window.ethereum) { showToast('Install MetaMask to connect.', '', 'info'); return; }
+        const mm = (window.ethereum.providers || []).find(p => p.isMetaMask)
+                  || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+        await mm.request({ method: 'eth_requestAccounts' });
+        setStatus('Wallet connected');
+        updateNetworkPill();
+      });
+      el('buyBtn')?.addEventListener('click', buyInline);
+
+      // Keep Buy label in sync with amount
+      const amt = el('buyAmount'); const buy = el('buyBtn');
+      if (amt && buy) {
+        const sync = () => { buy.textContent = `Buy ${amt.value || '0.01'} ETH`; };
+        amt.addEventListener('input', sync); sync();
+      }
+
+      // React to wallet changes
+      if (window.ethereum?.on) {
+        window.ethereum.on('chainChanged', () => updateNetworkPill());
+        window.ethereum.on('accountsChanged', () => updateNetworkPill());
+      }
+
+      // Initial paint + auto-refresh + initial pills
+      const tick = async () => { try { await window.EXWIFE_refreshRaised(); } catch (e) { console.warn('tick failed:', e); } };
+      tick();
+      updatePausedPill();
+      updateNetworkPill();
+      window.EXWIFE_AUTO = window.EXWIFE_AUTO || {};
+      clearInterval(window.EXWIFE_AUTO.raised);
+      window.EXWIFE_AUTO.raised = setInterval(tick, 20000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+      console.log('EXWIFE v12.3 loaded (goal:', window.GOAL_ETH, 'ETH)');
+    })();
+  
+  // Gate 7: expose module funcs for console/tests
+  if (typeof updatePausedPill === "function")   window.updatePausedPill = updatePausedPill;
+  if (typeof updateNetworkPill === "function")  window.updateNetworkPill = updateNetworkPill;
+  if (typeof EXWIFE_refreshRaised === "function") window.EXWIFE_refreshRaised = EXWIFE_refreshRaised;
+
+  // Gate 7: expose for console/tests
+  try { if (typeof updatePausedPill     === "function") window.updatePausedPill     = updatePausedPill; } catch {}
+  try { if (typeof updateNetworkPill    === "function") window.updateNetworkPill    = updateNetworkPill; } catch {}
+  try { if (typeof EXWIFE_refreshRaised === "function") window.EXWIFE_refreshRaised = EXWIFE_refreshRaised; } catch {}
+</script>
+
+  <!-- Toasts UI (kept) -->
+  <style>
+    #exwifeToastHost{position:fixed;right:16px;top:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+    .exwifeToast{min-width:280px;max-width:360px;background:#101010;color:#eee;border:1px solid #2b2b2b;border-radius:14px;
+      padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);font:14px/1.3 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      pointer-events:auto;opacity:0;transform:translateY(-6px);transition:opacity .18s ease, transform .18s ease}
+    .exwifeToast.show{opacity:1;transform:translateY(0)}
+    .exwifeToast .hdr{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px}
+    .exwifeToast .msg{opacity:.9;word-wrap:break-word}
+    .exwifeToast.success{border-color:#235c2a}
+    .exwifeToast.success .dot{width:10px;height:10px;border-radius:999px;background:#8df58d}
+    .exwifeToast.error{border-color:#6a2525}
+    .exwifeToast.error .dot{width:10px;height:10px;border-radius:999px;background:#ff8a8a}
+    .exwifeToast.info{border-color:#2b2b2b}
+    .exwifeToast.info .dot{width:10px;height:10px;border-radius:999px;background:#9bb2ff}
+    .exwifeToast .x{margin-left:auto;opacity:.7;cursor:pointer}
+  </style>
+  <div id="exwifeToastHost" aria-live="polite"></div>
+  
+
+  <!-- Progress Animation (kept) -->
+  <style>
+    #progFill, [data-exwife-progress-fill]{ transition: width .9s cubic-bezier(.22,.8,.26,.99); will-change: width; }
+  </style>
+  
+
+  <!-- Owner Panel (kept; now neutral to network) -->
+  <style>
+    #ownerPanel{position:fixed;right:12px;bottom:12px;z-index:9999}
+    #ownerPanel details{background:#111;color:#eee;border:1px solid #333;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.35);min-width:320px}
+    #ownerPanel summary{cursor:pointer;list-style:none;font-weight:700}
+    #ownerPanel .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    #ownerPanel button{border:1px solid #2b2b2b;border-radius:12px;padding:8px 10px;cursor:pointer;background:#1b1b1b;color:#fff}
+    #ownerPanel button[disabled]{opacity:.45;cursor:not-allowed}
+    #ownerPanel .pill{display:inline-block;border:1px solid #2b2b2b;border-radius:999px;padding:2px 8px;margin-left:6px;font-size:12px}
+    #ownerPanel .ok{color:#8df58d;border-color:#285e28}
+    #ownerPanel .warn{color:#ffd16b;border-color:#7a5b24}
+    #ownerPanel .bad{color:#ff8a8a;border-color:#6a2525}
+    #ownerPanel .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  </style>
+
+<div id="ownerPanel" style="display:none;">
+  <h2>Owner Panel</h2>
+  <button id="ownerToggle">Toggle Owner Actions</button>
+  <!-- add any real owner-only controls here later -->
+</div>
+
+<script>
+// Presale interactions
+
+
+async function EXWIFE_refreshRaised() {
+  try {
+    const provider = new ethers.JsonRpcProvider(window.EXWIFE_ENV.rpc);
+    const presale = new ethers.Contract(
+      window.PRESALE_ADDRESS,
+      [
+        "function totalRaisedWei() view returns (uint256)",
+        "function weiRaised() view returns (uint256)"
+      ],
+      provider
+    );
+
+    let raised = NaN;
+    try {
+      raised = Number(ethers.formatEther(await presale.totalRaisedWei()));
+    } catch {}
+    if (isNaN(raised)) {
+      try {
+        raised = Number(ethers.formatEther(await presale.weiRaised()));
+      } catch {}
+    }
+    if (isNaN(raised)) {
+      try {
+        raised = Number(ethers.formatEther(await provider.getBalance(window.PRESALE_ADDRESS)));
+      } catch {}
+    }
+
+    const goal = window.GOAL_ETH || 1200;
+    const bar = document.getElementById("progressInner");
+    const txt = document.getElementById("progressText");
+    if (bar) bar.style.width = ((raised/goal)*100).toFixed(1) + "%";
+    if (txt) txt.textContent = `${raised.toFixed(3)} / ${goal} ETH`;
+
+    return raised;
+  } catch (e) {
+    console.error(e);
+    return NaN;
+  }
+}
+</script>
+<!-- GATE7 — Owner Panel toggle -->
+<script>
+  const toggleBtn = document.getElementById('ownerToggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('owner-open');
+    });
+  }
+</script>
+
+<script type="module">
+(() => {
+  if (window.__G94_APPLIED__) return;
+
+  // ---- Helpers ----
+  const byId = (id) => document.getElementById(id);
+  const amtEl = () =>
+    byId("buyAmount") ||
+    byId("ethAmount") ||
+    document.querySelector("#amount, [name=amount], input[id*='amount' i], input[name*='amount' i]");
+
+  // Normalize commas to dots, trim
+  const readEth = () => {
+    const el = amtEl();
+    const raw = (el?.value ?? "").replace(",", ".").trim();
+    return { raw, num: Number.parseFloat(raw), el };
+  };
+
+  // ---- Ensure/Wrap handleBuy (and block auto-buy) ----
+  try {
+    if (window.ethers?.Contract && !window.ethers.Contract.__G94_PATCHED__) {
+      const C = window.ethers.Contract; const orig = C.prototype.buy;
+      if (typeof orig === "function") {
+        C.prototype.buy = function(...args){
+          if (!window.__ALLOW_BUY_CALL__) {
+            const e = new Error("Auto-buy blocked"); e.code = "AUTO_BUY_BLOCKED"; throw e;
+          }
+          return orig.apply(this, args);
+        };
+        C.__G94_PATCHED__ = true;
+      }
+    }
+  } catch(_) {}
+
+  const ensureHandleBuy = () => {
+    if (typeof window.handleBuy === "function") return;
+    window.handleBuy = async () => {
+      const toast = (window.toast||{});
+      const info = toast.info?.bind(toast) || ((m)=>console.info("[info]",m));
+      const ok   = toast.success?.bind(toast) || ((m)=>console.log("[ok]",m));
+      const err  = toast.error?.bind(toast) || ((m)=>console.error("[error]",m));
+
+      const { raw, num } = readEth();
+      if (!raw) { err("Enter an amount in ETH."); return; }
+      if (!Number.isFinite(num) || num < 0.001) { err("Enter an amount ≥ 0.001 ETH"); return; }
+
+      const provider = window.ethereum
+        ? new ethers.BrowserProvider(window.ethereum)
+        : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
+
+      let signer; try { signer = await provider.getSigner(); } catch(e){ err("No wallet connected."); return; }
+      const net = await provider.getNetwork();
+      if (String(net.chainId) !== "1") { await window.updateNetworkPill?.(); err("Please switch to Ethereum Mainnet."); return; }
+
+      const PRESALE = (window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale);
+      const ABI = (window.PRESALE_ABI_MIN || window.PRESALE_ABI);
+      if (!PRESALE || !ABI) { err("Presale config missing."); return; }
+      const presale = new ethers.Contract(PRESALE, ABI, signer);
+
+      try { if (await presale.paused?.()) { err("Presale is paused."); return; } } catch(_) {}
+
+      const value = ethers.parseEther(String(num));
+      let gas; try { gas = await presale.buy.estimateGas({ value }); }
+      catch(e){ err((e?.shortMessage)||"Buy not available. Check amount/network."); return; }
+
+      let fee, gp; try { fee = await provider.getGasPrice(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
+      const gasCost = gas * gp;
+      const needWei = gasCost + value;
+      const bal = await provider.getBalance(await signer.getAddress());
+      if (bal < needWei) { err("Insufficient funds for amount + gas"); return; }
+
+      const buyBtn = byId("buyBtn") || document.querySelector('[data-action="buy"], button.buy, a.buy');
+      const setPending = (v)=>{ try{ if (buyBtn) buyBtn.disabled = !!v; }catch(_){} };
+
+      window.__ALLOW_BUY_CALL__ = true; setPending(true);
+      try {
+        info("Submitting transaction… Confirm in your wallet");
+        const tx = await presale.buy({ value });
+        info("Pending… " + tx.hash);
+        await tx.wait();
+        ok("Purchase confirmed");
+        await window.EXWIFE_refreshRaised?.();
+      } catch (e) {
+        if (String(e?.code) === "ACTION_REJECTED") err("Transaction rejected");
+        else err((e?.shortMessage)||e?.message||"Transaction failed");
+      } finally {
+        window.__ALLOW_BUY_CALL__ = false; setPending(false);
+      }
+    };
+    window.handleBuy.__G94_BUILTIN__ = true;
+  };
+
+  const wrapHandleBuy = () => {
+    const base = window.handleBuy;
+    if (typeof base !== "function" || base.__G94_WRAPPED__) return;
+    async function safe(){ window.__ALLOW_BUY_CALL__ = true; try { await base(); } finally { window.__ALLOW_BUY_CALL__ = false; } }
+    safe.__G94_WRAPPED__ = true; window.handleBuy = safe;
+  };
+
+  const rewire = () => {
+    const cloneWire = (el, fn) => {
+      if (!el || el.__G94_WIRED__) return el;
+      const clean = el.cloneNode(true); el.replaceWith(clean);
+      clean.addEventListener("click", (e)=>{ e?.preventDefault?.(); fn(); });
+      clean.__G94_WIRED__ = true; return clean;
+    };
+
+    const buy = byId("buyBtn") || document.querySelector('[data-action="buy"], button.buy, a.buy');
+    cloneWire(buy, () => window.handleBuy());
+
+    const refresh = byId("refreshBtn") || byId("refresh")
+      || document.querySelector('[data-action="refresh"], [data-refresh], button.refresh, a.refresh');
+    const doRefresh = (typeof window.EXWIFE_refreshRaised === "function")
+      ? window.EXWIFE_refreshRaised
+      : (async () => { (window.toast?.info || console.info)("Refreshed."); });
+    cloneWire(refresh, () => { try { doRefresh(); } catch(e){ console.warn("refresh failed:", e); } });
+
+    const el = amtEl();
+    if (el) {
+      if (el.value?.trim() === "0.01") el.value = "";
+      if (!el.min || Number(el.min) < 0.001) el.min = "0.001";
+      el.placeholder = el.placeholder || "0.001";
+      el.autocomplete = "off";
+    }
+
+    let maxBtn = byId("maxBtn") || document.querySelector('[data-action="max"]');
+    if (!maxBtn && el) {
+      maxBtn = document.createElement("button");
+      maxBtn.id = "maxBtn"; maxBtn.type = "button"; maxBtn.textContent = "Max";
+      maxBtn.style.marginLeft = "0.5rem"; el.insertAdjacentElement("afterend", maxBtn);
+    }
+    if (maxBtn && !maxBtn.__G94_WIRED__) {
+      maxBtn.addEventListener("click", async () => {
+        try {
+          const provider = window.ethereum
+            ? new ethers.BrowserProvider(window.ethereum)
+            : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
+          let fee, gp; try { fee = await provider.getGasPrice(); gp = (fee.maxFeePerGas || fee.gasPrice || 0n); } catch { try { gp = await provider.getGasPrice(); } catch { gp = 0n; } }
+          const signer = await provider.getSigner();
+          const bal = await provider.getBalance(await signer.getAddress());
+          const reserve = 200000n * gp; const minWei = ethers.parseEther("0.001");
+          const spend = (bal > reserve ? (bal - reserve) : 0n);
+          if (spend < minWei) { (window.toast?.error||console.error)("Balance too low for 0.001 ETH after gas reserve"); return; }
+          const eth = ethers.formatEther(spend); if (el) el.value = String(Number(eth).toFixed(4));
+        } catch (e) { (window.toast?.error||console.error)("Couldn't compute max amount"); }
+      });
+      maxBtn.__G94_WIRED__ = true;
+    }
+  };
+
+  const start = () => { ensureHandleBuy(); wrapHandleBuy(); rewire(); };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+
+  window.__G94_APPLIED__ = true;
+})();
+</script>
+<script>
+(function(){
+  const byId = id => document.getElementById(id);
+  const amtEl = () =>
+    byId("buyAmount") ||
+    byId("ethAmount") ||
+    document.querySelector("#amount,[name=amount],input[id*='amount' i],input[name*='amount' i]");
+  const buy = byId("buyBtn") || document.querySelector("[data-action='buy'],button.buy,a.buy");
+  const fmt = v => (Number.isFinite(v) && v > 0 ? `Buy ${v.toFixed(3)} ETH` : "Buy");
+  const valid = v => Number.isFinite(v) && v >= 0.001;
+  const read = () => {
+    const el = amtEl();
+    return parseFloat((el?.value || "").replace(",", "."));
+  };
+  const sync = () => {
+    const v = read();
+    if (buy) { buy.textContent = fmt(v); buy.disabled = !valid(v); }
+  };
+  document.addEventListener("input", (e) => { if (e.target === amtEl()) sync(); }, true);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", sync, { once: true });
+  } else {
+    sync();
+  }
+})();
+</script>
+<script>
+(function(){
+  const byId = id => document.getElementById(id);
+  const getAmt = () =>
+    byId("buyAmount") ||
+    byId("ethAmount") ||
+    document.querySelector("#amount,[name=amount],input[id*='amount' i],input[name*='amount' i]");
+  const getBuy = () =>
+    byId("buyBtn") ||
+    document.querySelector("[data-action='buy'],button.buy,a.buy");
+
+  // Normalize commas, NBSP, and stray characters
+  const parseEth = (raw) => {
+    if (!raw) return NaN;
+    const cleaned = String(raw)
+      .replace(/\u00a0/g, " ")    // NBSP -> space
+      .replace(/[^\d.,-]/g, "")   // keep digits, dot, comma, dash
+      .replace(",", ".")          // comma decimal -> dot
+      .trim();
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : NaN;
+  };
+
+  const fmt = (v) => (Number.isFinite(v) && v > 0 ? `Buy ${v.toFixed(3)} ETH` : "Buy");
+  const isValid = (v) => Number.isFinite(v) && v >= 0.001;
+
+  const sync = () => {
+    const amtEl = getAmt();
+    const buyEl = getBuy();
+    if (!buyEl) return;
+    const num = parseEth(amtEl?.value || "");
+    buyEl.textContent = fmt(num);
+    buyEl.disabled = !isValid(num);
+  };
+
+  // React to *lots* of events to catch late autofill / restored form values
+  const wire = () => {
+    const amtEl = getAmt();
+    const buyEl = getBuy();
+
+    // Enforce sane attrs on the amount input
+    if (amtEl) {
+      if (!amtEl.min || Number(amtEl.min) < 0.001) amtEl.min = "0.001";
+      amtEl.autocomplete = "off";  // discourage browser restoring stale value labels
+      amtEl.inputMode = "decimal";
+      amtEl.placeholder = amtEl.placeholder || "0.001";
+    }
+
+    // Input/change listeners (don’t rely on strict node equality)
+    document.addEventListener("input", sync, true);
+    document.addEventListener("change", sync, true);
+
+    // Lifecycle events that often follow browser restore
+    window.addEventListener("pageshow", sync, { once: false });
+    document.addEventListener("visibilitychange", sync, false);
+    window.addEventListener("focus", sync, false);
+    document.addEventListener("focusin", sync, false);
+
+    // A few delayed passes to catch *really* late autofill
+    setTimeout(sync, 0);
+    setTimeout(sync, 250);
+    setTimeout(sync, 1000);
+
+    // Initial pass
+    sync();
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wire, { once: true });
+  } else {
+    wire();
+  }
+})();
+</script>
+<script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i)return;i.setAttribute("placeholder","0.001 (min)");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");const gate=()=>{const v=parseFloat(i.value);if(b)b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script>(()=>{try{const i=document.querySelector("#amount");const b=document.querySelector("#buyBtn");if(!i||!b)return;const gate=()=>{const v=parseFloat(i.value);b.disabled=!(v>=0.001)};i.addEventListener("input",gate,{passive:true});gate();}catch(e){console.warn("ux-touch failed:",e)}})();</script><script id="safe-buy-guard">(()=>{try{const MIN=0.001;const getInput=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");const i=getInput();if(i&&btn){i.setAttribute("min","0.001");i.setAttribute("step","0.001");i.setAttribute("inputmode","decimal");if(!i.getAttribute("placeholder"))i.setAttribute("placeholder","0.001 (min)");const gate=()=>{const v=parseFloat(i.value);btn.disabled=!(v>=MIN)};i.addEventListener("input",gate,{passive:true});gate();}const wrap=()=>{if(typeof window.handleBuy==="function"&&!window.handleBuy.__wrapped){const orig=window.handleBuy;window.handleBuy=async function(...args){try{const i2=getInput();const amt=parseFloat(i2?.value??"");if(!(amt>=MIN))return;return await orig.apply(this,args);}catch(e){return await orig.apply(this,args)}};window.handleBuy.__wrapped=true;}}; if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",wrap,{once:true});}else{wrap();}}catch(e){console.warn("safe-buy-guard failed:",e)}})();</script><script id="safe-buy-click-shield">(()=>{try{const MIN=0.001;const getI=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");const btn=document.querySelector("#buyBtn");if(!btn)return;btn.addEventListener("click",(ev)=>{try{const i=getI();const amt=parseFloat(i?.value??"");if(!(amt>=MIN)){ev.preventDefault();ev.stopImmediatePropagation();return false;}}catch(_){}},true);}catch(e){console.warn("safe-buy-click-shield failed:",e)}})();</script><script id="safe-toast-filter">(()=>{try{
+  const MIN=0.001;
+  const getI=()=>document.querySelector("#amount")||document.querySelector("#buyAmount")||document.querySelector("input");
+  const btn=document.querySelector("#buyBtn");
+
+  // Track explicit user buy intent (click buy or press Enter inside amount box)
+  window.__buyIntent=false;
+  const arm=()=>{ window.__buyIntent=true; setTimeout(()=>window.__buyIntent=false, 2000); };
+  if(btn){ btn.addEventListener("click", arm, {capture:false}); }
+  const i=getI();
+  if(i){ i.addEventListener("keydown", (e)=>{ if(e.key==="Enter") arm(); }, {capture:false}); }
+
+  // Wrap toast.err to suppress the specific empty-amount message unless intent=true
+  const t=window.toast||{};
+  const origErr=t.err?.bind(t);
+  if(origErr && !t.__wrappedEmptyGuard){
+    t.err=function(msg, opts){
+      try{
+        const isEmptyMsg = /enter an amount in eth/i.test(String(msg||""));
+        if(isEmptyMsg && !window.__buyIntent) return; // silently ignore spurious empty-amount toasts
+      }catch(_){}
+      return origErr(msg, opts);
+    };
+    t.__wrappedEmptyGuard=true;
+  }
+}catch(e){console.warn("safe-toast-filter failed:",e)}})();</script><script id="gate10-direct-buy">
+(()=>{try{
+  const 60(s,r=document)=>r.querySelector(s);
+  const iOS = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  const host = location.host || "exwifetoken.com";
+  const dapp = "https://"+host;
+  const cbw  = "https://go.cb-w.com/dapp?url="+encodeURIComponent(dapp);
+  const mm   = "https://metamask.app.link/dapp/"+host.replace(/^https?:\/\//,"");
+
+  const toastr = {
+    info: (m)=> (window.toast?.info? window.toast.info(m) : console.log("[info]",m)),
+    err:  (m)=> (window.toast?.err?  window.toast.err(m)  : console.error("[err]",m)),
+    ok:   (m)=> (window.toast?.ok?   window.toast.ok(m)   : console.log("[ok]",m)),
+  };
+
+  const amtInput = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#amount") || 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyAmount") || document.querySelector("input");
+  const buyBtn   = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyBtn") || [...document.querySelectorAll("button")].find(b=>/buy/i.test(b?.textContent||""));
+  if(!amtInput || !buyBtn) return;
+
+  // Minimum and enable/disable
+  const MIN=0.001;
+  const valid = ()=>{ const v=parseFloat((amtInput.value||"").trim()); return Number.isFinite(v) && v>=MIN; };
+  const sync  = ()=>{ try{ buyBtn.disabled = !valid(); }catch{} };
+  amtInput.addEventListener("input", sync, {passive:true}); sync();
+
+  // Helpful input hints (idempotent)
+  amtInput.setAttribute("inputmode","decimal");
+  amtInput.setAttribute("step","0.001");
+  if(!amtInput.getAttribute("min")) amtInput.setAttribute("min","0.001");
+  if(!amtInput.getAttribute("placeholder")) amtInput.setAttribute("placeholder","0.001 (min)");
+
+  // Deep link when no provider (iOS Safari etc.)
+  const ensureWallet = ()=>{
+    if (window.ethereum) return true;
+    if (iOS) {
+      toastr.info("Opening Coinbase Wallet to connect…");
+      location.href = cbw;
+      setTimeout(()=>{ try{ location.href = mm; }catch{} }, 1200);
+      return false;
+    }
+    toastr.err("No wallet detected. Please install MetaMask or use Coinbase Wallet.");
+    return false;
+  };
+
+  // Resolve presale & ethers
+  const resolvePresale = ()=>{
+    const addr = (window.PRESALE_ADDRESS) || (window.EXWIFE_ENV && window.EXWIFE_ENV.presale);
+    if(!addr) throw new Error("Presale address missing");
+    if(!window.ethers) throw new Error("ethers.js not present");
+    const abi=[{"inputs":[],"name":"buy","outputs":[],"stateMutability":"payable","type":"function"}];
+    const provider = new window.ethers.BrowserProvider(window.ethereum);
+    return { addr, abi, provider };
+  };
+
+  // Run a direct buy with ethers v6
+  const performBuy = async ()=>{
+    const amt = parseFloat((amtInput.value||"").trim());
+    if(!(amt>=MIN)) throw new Error("Enter ≥ 0.001 ETH");
+    const {addr, abi, provider} = resolvePresale();
+
+    // Guard: chain (use your existing policy — here we allow any, but prefer mainnet)
+    try{
+      const net = await provider.getNetwork();
+      // Example: if you require mainnet only, uncomment next two lines
+      // if (Number(net.chainId)!==1) { throw new Error("Please switch to Ethereum Mainnet"); }
+    }catch(e){ /* non-fatal for some mobile stacks */ }
+
+    const signer = await provider.getSigner();
+    const c = new window.ethers.Contract(addr, abi, signer);
+    const value = window.ethers.parseEther(String(amt));
+
+    const tx = await c.buy({ value });
+    toastr.info("Submitting transaction… Confirm in your wallet");
+    const rcpt = await tx.wait();
+
+    const tokens = Math.floor(amt * 100000); // 100k EXWIFE / ETH (adjust if rate differs)
+    const link = (window.EXWIFE_ENV && window.EXWIFE_ENV.network==="sepolia")
+      ? "https://sepolia.etherscan.io/tx/"+tx.hash
+      : "https://etherscan.io/tx/"+tx.hash;
+
+    toastr.ok(`Bought ${tokens.toLocaleString()} EXWIFE ✅ View on Etherscan`);
+    // If you have a refresh
+    try { await window.EXWIFE_refreshRaised?.(); } catch {}
+    try {
+      // Show a clickable link if your toast supports HTML; otherwise log
+      (window.toast?.info||console.log)("Tx: "+link);
+    } catch {}
+    return rcpt;
+  };
+
+  const tap = async (ev)=>{
+    try{
+      if(!valid()){ ev?.preventDefault?.(); ev?.stopImmediatePropagation?.(); toastr.err("Enter an amount in ETH (≥ 0.001)"); return false; }
+      // Blur keyboard before wallet sheet
+      try{ amtInput.blur?.(); }catch{}
+      // Ensure provider or open wallet app
+      if(!ensureWallet()){ ev?.preventDefault?.(); ev?.stopImmediatePropagation?.(); return false; }
+      // Synchronous handoff into buy
+      await performBuy();
+      return true;
+    }catch(e){
+      console.error("direct-buy error:", e);
+      toastr.err("Buy error: "+(e?.message||e));
+      return false;
+    }
+  };
+
+  // Capture-first + direct onclick to beat other listeners
+  const handler=(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault(); tap(ev); };
+  ["touchstart","pointerdown","click","touchend","pointerup"].forEach(evt=>{
+    buyBtn.addEventListener(evt, handler, {capture:true, passive:false});
+  });
+  buyBtn.onclick = (ev)=>{ ev.preventDefault(); tap(ev); };
+
+  // Enter-to-buy
+  amtInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter" && valid()){ e.preventDefault(); tap(e); } }, {passive:false});
+}catch(e){ console.warn("gate10-direct-buy failed:", e); }})();
+</script>
+</body>
+<script type="module">
+(() => {
+  if (window.__FINAL_BUY_MODULE__) return;
+
+  // ---------- helpers ----------
+  const byId = (id) => document.getElementById(id);
+  const q = (sel) => document.querySelector(sel);
+  const amtEl = () =>
+    byId("buyAmount") ||
+    byId("ethAmount") ||
+    q("#amount, [name=amount], input[id*='amount' i], input[name*='amount' i]");
+
+  const toast = (window.toast || {});
+  const info = toast.info?.bind(toast) || ((m)=>console.info("[info]", m));
+  const ok   = toast.success?.bind(toast) || ((m)=>console.log("[ok]", m));
+  const err  = toast.error?.bind(toast) || ((m)=>console.error("[error]", m));
+
+  const readEth = () => {
+    const el = amtEl();
+    const raw = (el?.value ?? "").replace(",", ".").trim();
+    return { el, raw, num: Number.parseFloat(raw) };
+  };
+
+  // ---------- block auto-buy unless via our handler ----------
+  try {
+    if (window.ethers?.Contract && !window.ethers.Contract.__FINAL_PATCHED__) {
+      const C = window.ethers.Contract;
+      const orig = C.prototype.buy;
+      if (typeof orig === "function") {
+        C.prototype.buy = function(...args){
+          if (!window.__ALLOW_BUY_CALL__) {
+            const e = new Error("Auto-buy blocked");
+            e.code = "AUTO_BUY_BLOCKED";
+            throw e;
+          }
+          return orig.apply(this, args);
+        };
+        C.__FINAL_PATCHED__ = true;
+      }
+    }
+  } catch(_) {}
+
+  // ---------- label updater ----------
+  const labelFmt = (v) => (Number.isFinite(v) && v > 0 ? `Buy ${v.toFixed(3)} ETH` : "Buy now");
+  const validAmt = (v) => Number.isFinite(v) && v >= 0.001;
+  const syncLabelAndDisable = () => {
+    const { el, num } = readEth();
+    const buy = byId("buyBtn") || q("[data-action='buy'], button.buy, a.buy");
+    if (buy) buy.textContent = labelFmt(num);
+    if (buy) buy.disabled = !validAmt(num);
+    if (el) {
+      if (!el.min || Number(el.min) < 0.001) el.min = "0.001";
+      el.placeholder = el.placeholder || "0.001";
+      el.autocomplete = "off";
+    }
+  };
+
+  // ---------- compute max ----------
+  async function fillMax() {
+    const el = amtEl();
+    if (!el) return;
+    try {
+      const provider = window.ethereum
+        ? new ethers.BrowserProvider(window.ethereum)
+        : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
+
+      // gasPrice with fallback to legacy gasPrice for older RPCs
+      let gp = 0n;
+      try {
+        const fee = await provider.getGasPrice();
+        gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
+      } catch {
+        try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
+      }
+
+      const signer = await provider.getSigner();
+      const bal = await provider.getBalance(await signer.getAddress());
+      const reserve = 200000n * gp; // ~200k gas reserve
+      const minWei  = ethers.parseEther("0.001");
+      const spend   = (bal > reserve ? (bal - reserve) : 0n);
+      if (spend < minWei) { err("Balance too low for 0.001 ETH after gas reserve"); return; }
+      const eth = Number(ethers.formatEther(spend));
+      el.value = String(eth.toFixed(4));
+      syncLabelAndDisable();
+    } catch {
+      err("Couldn't compute max amount");
+    }
+  }
+
+  // ---------- main buy handler ----------
+  async function handleBuy() {
+    const { raw, num } = readEth();
+    if (!raw) { err("Enter an amount in ETH."); return; }
+    if (!Number.isFinite(num) || num < 0.001) { err("Enter an amount ≥ 0.001 ETH"); return; }
+
+    const provider = window.ethereum
+      ? new ethers.BrowserProvider(window.ethereum)
+      : new ethers.JsonRpcProvider(window.EXWIFE_ENV?.rpc);
+
+    let signer;
+    try { signer = await provider.getSigner(); }
+    catch { err("No wallet connected."); return; }
+
+    const net = await provider.getNetwork();
+    if (String(net.chainId) !== "1") { await window.updateNetworkPill?.(); err("Please switch to Ethereum Mainnet."); return; }
+
+    const PRESALE = (window.PRESALE_ADDRESS || window.EXWIFE_ENV?.presale);
+    const ABI = (window.PRESALE_ABI_MIN || window.PRESALE_ABI);
+    if (!PRESALE || !ABI) { err("Presale config missing."); return; }
+
+    const presale = new ethers.Contract(PRESALE, ABI, signer);
+    try { if (await presale.paused?.()) { err("Presale is paused."); return; } } catch {}
+
+    const value = ethers.parseEther(String(num));
+
+    // estimate gas
+    let gas;
+    try { gas = await presale.buy.estimateGas({ value }); }
+    catch (e) { err(e?.shortMessage || "Buy not available. Check amount/network."); return; }
+
+    // fee/gas price with fallback
+    let gp = 0n;
+    try {
+      const fee = await provider.getGasPrice();
+      gp = (fee.maxFeePerGas || fee.gasPrice || 0n);
+    } catch {
+      try { gp = await provider.getGasPrice(); } catch { gp = 0n; }
+    }
+
+    const gasCost = gas * gp;
+    const needWei = gasCost + value;
+    const bal = await provider.getBalance(await signer.getAddress());
+    if (bal < needWei) { err("Insufficient funds for amount + gas"); return; }
+
+    const buyBtn = byId("buyBtn") || q("[data-action='buy'], button.buy, a.buy");
+    const setPending = (v)=>{ try { if (buyBtn) buyBtn.disabled = !!v; } catch {} };
+
+    window.__ALLOW_BUY_CALL__ = true;
+    setPending(true);
+    try {
+      info("Submitting transaction… Confirm in your wallet");
+      const tx = await presale.buy({ value });
+      info("Pending… " + tx.hash);
+      await tx.wait();
+      ok("Purchase confirmed");
+      await window.EXWIFE_refreshRaised?.();
+    } catch (e) {
+      if (String(e?.code) === "ACTION_REJECTED") err("Transaction rejected");
+      else err(e?.shortMessage || e?.message || "Transaction failed");
+    } finally {
+      window.__ALLOW_BUY_CALL__ = false;
+      setPending(false);
+    }
+  }
+
+  // wrap to enforce auto-buy guard
+  if (!handleBuy.__FINAL_WRAPPED__) {
+    const base = handleBuy;
+    async function safe(){ window.__ALLOW_BUY_CALL__ = true; try { await base(); } finally { window.__ALLOW_BUY_CALL__ = false; } }
+    safe.__FINAL_WRAPPED__ = true;
+    window.handleBuy = safe;
+  }
+
+  // ---------- wiring ----------
+  const wire = () => {
+    // input label + disable
+    document.addEventListener("input", (e) => {
+      if (e.target === amtEl()) syncLabelAndDisable();
+    }, true);
+
+    // initial sync
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", syncLabelAndDisable, { once: true });
+    } else {
+      syncLabelAndDisable();
+    }
+
+    // Buy button
+    const buy = byId("buyBtn") || q("[data-action='buy'], button.buy, a.buy");
+    if (buy && !buy.__FINAL_WIRED__) {
+      const clean = buy.cloneNode(true);
+      buy.replaceWith(clean);
+      clean.addEventListener("click", (e) => { e?.preventDefault?.(); window.handleBuy(); });
+      clean.__FINAL_WIRED__ = true;
+    }
+
+    // Refresh
+    const refresh = byId("refreshBtn") || byId("refresh") || q("[data-action='refresh'], [data-refresh], button.refresh, a.refresh");
+    const doRefresh = (typeof window.EXWIFE_refreshRaised === "function")
+      ? window.EXWIFE_refreshRaised
+      : (async () => { (window.toast?.info || console.info)("Refreshed."); });
+    if (refresh && !refresh.__FINAL_WIRED__) {
+      const clean = refresh.cloneNode(true);
+      refresh.replaceWith(clean);
+      clean.addEventListener("click", (e) => { e?.preventDefault?.(); try { doRefresh(); } catch (e) { console.warn("refresh failed:", e); } });
+      clean.__FINAL_WIRED__ = true;
+    }
+
+    // Max button
+    const el = amtEl();
+    if (el) {
+      let maxBtn = byId("maxBtn") || q("[data-action='max']");
+      if (!maxBtn) {
+        maxBtn = document.createElement("button");
+        maxBtn.id = "maxBtn"; maxBtn.type = "button"; maxBtn.textContent = "Max";
+        maxBtn.style.marginLeft = "0.5rem";
+        el.insertAdjacentElement("afterend", maxBtn);
+      }
+      if (!maxBtn.__FINAL_WIRED__) {
+        maxBtn.addEventListener("click", fillMax);
+        maxBtn.__FINAL_WIRED__ = true;
+      }
+    }
+  };
+
+  wire();
+  window.__FINAL_BUY_MODULE__ = true;
+})();
+
+</script>
+</html>
