@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>
+// GATE4_HEAD_SHIM: defines window.updateNetworkPill early
+(function(){
+  if (typeof window === 'undefined') return;
+
+  // Ensure env defaults
+  window.EXWIFE_ENV = window.EXWIFE_ENV || {
+    network: 'mainnet',
+    presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed'
+  };
+  window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale || window.PRESALE_ADDRESS;
+
+  async function _updateNetworkPill(){
+    const pillEl = document.getElementById('netPill');
+    const buyBtn = document.getElementById('buyBtn');
+    const scanLink = document.getElementById('scanLink');
+
+    let pill = 'Ethereum', buyDisabled = false;
+    try {
+      if (window.ethereum?.request) {
+        const idHex = await window.ethereum.request({ method: 'eth_chainId' }).catch(()=>null);
+        const id = idHex ? parseInt(idHex, 16) : 1;
+        if (id !== 1) { pill = 'Wrong Network'; buyDisabled = true; }
+      } else {
+        pill = 'No Wallet'; buyDisabled = false;
+      }
+    } catch (e) {
+      pill = 'Error'; buyDisabled = true;
+    }
+
+    if (pillEl) pillEl.textContent = pill;
+    if (buyBtn != null) buyBtn.disabled = buyDisabled;
+    if (scanLink) scanLink.href = `https://etherscan.io/address/${window.PRESALE_ADDRESS}`;
+    return { pill, buyDisabled, href: scanLink?.href || null };
+  }
+
+  // Only set if not already defined; otherwise keep existing
+  if (typeof window.updateNetworkPill !== 'function') {
+    window.updateNetworkPill = _updateNetworkPill;
+  }
+
+  // Auto-run once
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.updateNetworkPill());
+  } else {
+    window.updateNetworkPill();
+  }
+})();
+
+</script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EXWIFE — Presale (Mainnet)</title>
+
+  <!-- Ethers UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <!-- ENV -->
+  <script>
+    window.EXWIFE_ENV = {
+      network: 'mainnet',
+      rpc: 'https://eth.drpc.org',
+      presale: '0xF4A37B656A33d418FB37280c9304274078A9b3ed',
+      token:   '0xd0F4f922891cBfaDB73511df7af66dE15DA93C94',
+      symbol:  'EXWIFE',
+      goalEth: 1200
+    };
+    window.GOAL_ETH = 1200;
+    window.PRESALE_ADDRESS = window.EXWIFE_ENV.presale;
+    window.PRESALE_ABI_MIN = [
+      "function paused() view returns (bool)",
+      "function totalRaisedWei() view returns (uint256)",
+      "function weiRaised() view returns (uint256)",
+      "function buy() payable"
+    ];
+  </script>
+
+  <!-- Minimal styles -->
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto; background:#0e0f12; color:#e7e7ea; margin:0; }
+    .pill { display:inline-block; background:#1c1d22; border:1px solid #2a2b31; padding:6px 10px; border-radius:999px; }
+    .btn { background:#2d6cdf; border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+    .wrap { max-width:680px; margin:40px auto; padding:0 16px; }
+  </style>
+</head>
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- EXWIFE v12.3 + UX POLISH v1: banner/countdown, progress numbers, toasts -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EXWIFE Presale (Mainnet) — v12.3</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/img/exwife-hero.png" />
+
+  <!-- Ethers UMD (single include; no async/defer) -->
+  
+
+  <!-- ENV + minimal ABI -->
+  
+
+  <!-- Safe subscription shim: skip subscribing to missing events -->
+  
+
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; background:#0e0f12; color:#e7e7ea; }
+    .wrap { max-width:680px; margin:40px auto; padding:0 16px; }
+    .card { background:#141417; border:1px solid #222; border-radius:14px; padding:18px; }
+    .row { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .pill { background:#1c1d22; border:1px solid #2a2b31; padding:6px 10px; border-radius:999px; }
+    .btn { background:#2d6cdf; border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .progress { width:100%; height:14px; background:#1a1b20; border:1px solid #2a2b31; border-radius:10px; overflow:hidden; margin-top:8px; }
+    .bar { height:100%; width:2%; background:#22c55e; transition: width .6s ease; }
+    code { background:#101115; border:1px solid #222; padding:2px 6px; border-radius:8px; }
+    .muted { opacity:.85; }
+    a { color:#9bbcff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    input::placeholder { color:#9aa; }
+
+    /* === UX POLISH v1: banner + progress numbers + toasts === */
+    .banner {
+      display:flex; gap:.5rem; align-items:center; justify-content:center;
+      padding:.6rem .9rem; margin:12px auto 14px; max-width:980px;
+      background:#111; color:#fff; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+      font-weight:600;
+    }
+    .banner .countdown { opacity:.9; font-weight:500; }
+
+    .progress-wrap { max-width:900px; margin:10px auto 0; }
+    .progress-head { display:flex; justify-content:space-between; margin-bottom:.35rem; font-weight:600; }
+    .progress-outer {
+      width:100%; height:14px; background:#1a1b20; border:1px solid #2a2b31; border-radius:999px; overflow:hidden;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.08);
+    }
+    .progress-inner { height:100%; width:0%; background:linear-gradient(90deg, #5ac8fa, #34c759, #ffd60a); transition:width .35s ease-in-out; }
+
+    .toast-stack { position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; z-index:9999; }
+    .toast {
+      min-width:260px; max-width:360px; padding:.75rem .9rem; border-radius:12px; color:#fff;
+      background:#333; box-shadow:0 10px 24px rgba(0,0,0,.25); font-weight:600;
+    }
+    .toast.ok { background:#2e7d32; }
+    .toast.err { background:#c62828; }
+    .toast.info { background:#2c3e50; }
+    .toast .sub { display:block; font-weight:500; opacity:.9; margin-top:.15rem; }
+  </style>
+<!-- === GATE5_SEO_BLOCK v1 === -->
+<title>EXWIFE Token — Fair, Fun, and A Little Petty</title>
+<meta name="description" content="EXWIFE (EXWIFE) — a cheeky, fair-launch presale on Ethereum. Buy in, watch the drama, and enjoy the ride.">
+
+<link rel="canonical" href="https://exwifetoken.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://exwifetoken.com/">
+<meta property="og:title" content="EXWIFE Token — Fair, Fun, and A Little Petty">
+<meta property="og:description" content="EXWIFE (EXWIFE) — a cheeky, fair-launch presale on Ethereum.">
+<meta property="og:image" content="https://exwifetoken.com/img/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="EXWIFE Token — Fair, Fun, and A Little Petty">
+<meta name="twitter:description" content="EXWIFE (EXWIFE) — a cheeky, fair-launch presale on Ethereum.">
+<meta name="twitter:image" content="https://exwifetoken.com/img/social-card.png">
+
+<!-- Icons / PWA (keep your existing favicon.ico; these are additive) -->
+<link rel="icon" type="image/png" sizes="32x32" href="/img/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/img/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/img/icon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<!-- Structured data (minimal) -->
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"WebSite",
+  "name":"EXWIFE Token",
+  "url":"https://exwifetoken.com/",
+  "potentialAction":{
+    "@type":"SearchAction",
+    "target":"https://exwifetoken.com/?q={search_term_string}",
+    "query-input":"required name=search_term_string"
+  }
+}
+</script>
+<!-- === /GATE5_SEO_BLOCK === -->
+
+</head>
+<body>
+
+  <!-- Hero -->
+  <header style="max-width:980px;margin:24px auto 6px;padding:0 12px;text-align:center">
+    <img
+      src="/img/exwife-hero.png"
+      alt="EXWIFE Token"
+      loading="lazy"
+      style="max-width:100%;height:auto;border-radius:16px;display:inline-block;box-shadow:0 6px 24px rgba(0,0,0,.08)"
+    />
+    <h1 style="margin:14px 0 4px;font-size:28px;line-height:1.2;">EXWIFE Presale (Mainnet)</h1>
+    <p style="margin:0;font-size:16px;opacity:.8">Goal: 1200 ETH • Safe, read-only UI until you connect</p>
+  </header>
+
+  <!-- Live banner + countdown -->
+  <div id="presaleBanner" class="banner" role="status" aria-live="polite">
+    <strong>Presale v3 live until Oct 12</strong>
+    <span id="countdown" class="countdown">— calculating…</span>
+  </div>
+
+<h1 style="margin:0 0 6px;">EXWIFE Presale</h1>
+
+    <div class="card">
+      <div class="row">
+        <div class="pill" id="status">Ready</div>
+        <div class="pill" id="netPill" style="background:#3f3f46;border-color:#52525b">No Wallet</div>
+        <div class="row" style="gap:8px;">
+          <button class="btn" id="connectBtn" style="background:#475569">Connect</button>
+
+          <div style="display:flex;gap:8px;align-items:center;background:#1c1d22;border:1px solid #2a2b31;border-radius:10px;padding:6px 8px;">
+            <span style="opacity:.8">Amount</span>
+            <input id="buyAmount" inputmode="decimal" placeholder="0.01" value="0.01"
+                   style="width:90px;background:transparent;border:none;outline:none;color:#e7e7ea;font-weight:600;text-align:right" />
+            <span style="opacity:.8">ETH</span>
+          </div>
+
+          <button class="btn" id="buyBtn">Buy 0.01 ETH</button>
+          <button class="btn" id="refreshBtn" style="background:#374151">Refresh</button>
+          <a id="txLink" class="pill" href="#" target="_blank" style="display:none;">View tx</a>
+        </div>
+      </div>
+
+      <!-- Progress numbers + improved bar (keeps legacy IDs for compatibility) -->
+      <div style="margin-top:14px;">
+        <div class="progress-head">
+          <span>Raised</span>
+          <span id="progressNumbers">0.000 / 1200 ETH (0.00%)</span>
+        </div>
+        <div class="progress-outer" aria-label="Presale progress">
+          <div id="progressBar" class="progress-inner" style="width:0%"></div>
+        </div>
+
+        <!-- legacy display retained so existing code still paints -->
+        <div style="margin-top:10px">Raised: <strong id="raised">0.0000</strong> / <span id="goal-b">1200</span> ETH</div>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+      </div>
+
+      <div class="muted" style="margin-top:12px; word-break:break-all;">
+        Presale: <code id="addr"></code>
+        <div style="margin-top:6px;font-size:14px">
+          <a id="scanLink" href="https://etherscan.io/address/0xF4A37B656A33d418FB37280c9304274078A9b3ed" target="_blank" rel="noopener">View on Etherscan</a>
+          <button id="copyBtn" style="margin-left:8px;padding:4px 8px;border:1px solid #2a2b31;border-radius:8px;background:#1c1d22;color:#e7e7ea;cursor:pointer">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container (notifications) -->
+  <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Core logic -->
+  
+
+    const signer  = await provider.getSigner();
+    const addr    = window.PRESALE_ADDRESS;
+    const abi     = window.PRESALE_ABI_MIN;
+    const presale = new ethers.Contract(addr, abi, signer);
+
+    // Amount + validation (tune as needed)
+    const raw = (el('buyAmount')?.value || '').trim();
+    const amt = Number(raw);
+    const MIN = 0.001, MAX = 10;
+    if (!isFinite(amt) || amt <= 0) { showToast('Enter an amount in ETH.', '', 'err'); setStatus('Ready'); return; }
+    if (amt < MIN)                  { showToast(`Minimum is ${MIN} ETH`, '', 'err');  setStatus('Ready'); return; }
+    if (amt > MAX)                  { showToast(`Maximum is ${MAX} ETH`, '', 'err');  setStatus('Ready'); return; }
+
+    setStatus('Submitting tx…');
+    showToast('Submitting transaction…', 'Confirm in your wallet', 'info', 3000);
+
+    // Send tx
+    const tx = await presale.buy({ value: ethers.parseEther(String(amt)) });
+
+    // Explorer link depends on chain
+    const link = el('txLink');
+    const explorer = (chainIdStr === '11155111') ? 'https://sepolia.etherscan.io' : 'https://etherscan.io';
+    if (link) { link.href = `${explorer}/tx/${tx.hash}`; link.style.display=''; }
+
+    showToast('Buy submitted!', tx.hash.slice(0,10) + '…' + tx.hash.slice(-8), 'ok', 5200);
+    await tx.wait();
+    setStatus('✅ Confirmed');
+    await window.EXWIFE_refreshRaised();
+
+  } catch (e) {
+    console.error('buy() failed:', e);
+    setStatus('❌ Error');
+    const msg = (e?.reason || e?.data?.message || e?.message || String(e));
+    if (/insufficient funds/i.test(msg)) {
+      showToast('Insufficient ETH', 'Top up for gas/amount', 'err', 6000);
+    } else if (/user rejected/i.test(msg)) {
+      showToast('Transaction rejected', '', 'err', 4200);
+    } else {
+      showToast('Buy failed', msg, 'err', 6500);
+    }
+  }
+}
+
+    // --- Paused pill updater; combines with network pill to control BUY ---
+    async function updatePausedPill(){
+      try {
+        const ro = await getRO();
+        const c  = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
+        let isPaused = false; try { isPaused = await c.paused(); } catch (e) {}
+        window.EXWIFE_STATE.paused = isPaused;
+        setStatus(isPaused ? 'Paused' : 'Ready');
+        await updateNetworkPill();
+      } catch (e) {}
+    }
+
+    // Countdown banner (America/Chicago close time)
+    const PRESALE_CLOSE_UNIX = Math.floor(new Date('2025-10-12T23:59:59-05:00').getTime() / 1000);
+    (function bannerCountdown(){
+      const countdownEl = document.getElementById('countdown');
+      if (!countdownEl) return;
+      function render() {
+        const now = Math.floor(Date.now() / 1000);
+        let diff = PRESALE_CLOSE_UNIX - now;
+        if (diff <= 0) { countdownEl.textContent = '— closed'; return; }
+        const d = Math.floor(diff / 86400); diff %= 86400;
+        const h = Math.floor(diff / 3600);  diff %= 3600;
+        const m = Math.floor(diff / 60);    const s = diff % 60;
+        countdownEl.textContent = `— ${d}d ${h}h ${m}m ${s}s left`;
+      }
+      render();
+      setInterval(render, 1000);
+    })();
+
+    // Optional: RPC/wallet helpful toasts based on the net pill
+    (function rpcGuard(){
+      const pill = document.getElementById('netPill');
+      if (!pill) return;
+      const check = () => {
+        const t = (pill.textContent || '').trim();
+        if (t.includes('No Wallet')) {
+} else if (t.includes('Wrong')) {
+  showToast('Wrong network', 'Please switch to Ethereum Mainnet (or Sepolia)', 'err', 5000);
+}
+      };
+      setInterval(check, 8000);
+      setTimeout(check, 1500);
+    })();
+
+    // --- Boot ---
+    (function boot(){
+      const addr = window.PRESALE_ADDRESS || '(missing)';
+
+      // Static bits
+      el('addr') && (el('addr').textContent = addr);
+      // Default explorer to Mainnet; will be updated after connect if on Sepolia
+el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`);
+
+      // Listeners
+      el('copyBtn')?.addEventListener('click', () => navigator.clipboard.writeText(addr));
+      el('refreshBtn')?.addEventListener('click', () => EXWIFE_refreshRaised());
+      el('connectBtn')?.addEventListener('click', async () => {
+        if (!window.ethereum) { showToast('Install MetaMask to connect.', '', 'info'); return; }
+        const mm = (window.ethereum.providers || []).find(p => p.isMetaMask)
+                  || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+        await mm.request({ method: 'eth_requestAccounts' });
+        setStatus('Wallet connected');
+        updateNetworkPill();
+      });
+      el('buyBtn')?.addEventListener('click', buyInline);
+
+      // Keep Buy label in sync with amount
+      const amt = el('buyAmount'); const buy = el('buyBtn');
+      if (amt && buy) {
+        const sync = () => { buy.textContent = `Buy ${amt.value || '0.01'} ETH`; };
+        amt.addEventListener('input', sync); sync();
+      }
+
+      // React to wallet changes
+      if (window.ethereum?.on) {
+        window.ethereum.on('chainChanged', () => updateNetworkPill());
+        window.ethereum.on('accountsChanged', () => updateNetworkPill());
+      }
+
+      // Initial paint + auto-refresh + initial pills
+      const tick = async () => { try { await window.EXWIFE_refreshRaised(); } catch (e) { console.warn('tick failed:', e); } };
+      tick();
+      updatePausedPill();
+      updateNetworkPill();
+      window.EXWIFE_AUTO = window.EXWIFE_AUTO || {};
+      clearInterval(window.EXWIFE_AUTO.raised);
+      window.EXWIFE_AUTO.raised = setInterval(tick, 20000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+      console.log('EXWIFE v12.3 loaded (goal:', window.GOAL_ETH, 'ETH)');
+    })();
+  </script>
+
+  <!-- Toasts UI (kept) -->
+  <style>
+    #exwifeToastHost{position:fixed;right:16px;top:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+    .exwifeToast{min-width:280px;max-width:360px;background:#101010;color:#eee;border:1px solid #2b2b2b;border-radius:14px;
+      padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);font:14px/1.3 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      pointer-events:auto;opacity:0;transform:translateY(-6px);transition:opacity .18s ease, transform .18s ease}
+    .exwifeToast.show{opacity:1;transform:translateY(0)}
+    .exwifeToast .hdr{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px}
+    .exwifeToast .msg{opacity:.9;word-wrap:break-word}
+    .exwifeToast.success{border-color:#235c2a}
+    .exwifeToast.success .dot{width:10px;height:10px;border-radius:999px;background:#8df58d}
+    .exwifeToast.error{border-color:#6a2525}
+    .exwifeToast.error .dot{width:10px;height:10px;border-radius:999px;background:#ff8a8a}
+    .exwifeToast.info{border-color:#2b2b2b}
+    .exwifeToast.info .dot{width:10px;height:10px;border-radius:999px;background:#9bb2ff}
+    .exwifeToast .x{margin-left:auto;opacity:.7;cursor:pointer}
+  </style>
+  <div id="exwifeToastHost" aria-live="polite"></div>
+  
+
+  <!-- Progress Animation (kept) -->
+  <style>
+    #progFill, [data-exwife-progress-fill]{ transition: width .9s cubic-bezier(.22,.8,.26,.99); will-change: width; }
+  </style>
+  
+
+  <!-- Owner Panel (kept; now neutral to network) -->
+  <style>
+    #ownerPanel{position:fixed;right:12px;bottom:12px;z-index:9999}
+    #ownerPanel details{background:#111;color:#eee;border:1px solid #333;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.35);min-width:320px}
+    #ownerPanel summary{cursor:pointer;list-style:none;font-weight:700}
+    #ownerPanel .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    #ownerPanel button{border:1px solid #2b2b2b;border-radius:12px;padding:8px 10px;cursor:pointer;background:#1b1b1b;color:#fff}
+    #ownerPanel button[disabled]{opacity:.45;cursor:not-allowed}
+    #ownerPanel .pill{display:inline-block;border:1px solid #2b2b2b;border-radius:999px;padding:2px 8px;margin-left:6px;font-size:12px}
+    #ownerPanel .ok{color:#8df58d;border-color:#285e28}
+    #ownerPanel .warn{color:#ffd16b;border-color:#7a5b24}
+    #ownerPanel .bad{color:#ff8a8a;border-color:#6a2525}
+    #ownerPanel .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  </style>
+
+  <div id="ownerPanel">
+    <details>
+      <summary>Owner Panel
+        <span id="opNet"  class="pill mono">…</span>
+        <span id="opStat" class="pill mono">…</span>
+      </summary>
+      <div style="margin-top:8px;font-size:12px;opacity:.8">
+        Presale: <span class="mono" id="opAddr">...</span>
+      </div>
+      <div class="row">
+        <button id="opConnectBtn" title="Connect wallet (user-initiated)">Connect</button>
+        <button id="opRefreshBtn" title="Refresh panel/status">Refresh</button>
+      </div>
+      <div style="margin-top:8px;font-size:12px">
+        Wallet: <span id="opAcct" class="mono">not connected</span>
+      </div>
+      <div style="margin-top:8px">
+        Raised: <span id="opRaised" class="mono">…</span> ETH
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="opPauseBtn"   title="This presale is windowed; pause/unpause not available" disabled>Pause (n/a)</button>
+        <button id="opUnpauseBtn" title="This presale is windowed; pause/unpause not available" disabled>Unpause (n/a)</button>
+        <button id="opWithdrawBtn">Withdraw</button>
+        <button id="opFinalizeBtn">Finalize</button>
+      </div>
+      <div id="opMsg" style="margin-top:8px;font-size:12px;opacity:.85"></div>
+    </details>
+  </div>
+
+  
+
+  <!-- Force mainnet reader block was removed (we already have EXWIFE_refreshRaised above) -->
+
+</body></body>
+</html>
