@@ -923,7 +923,72 @@ async function EXWIFE_refreshRaised() {
     };
     t.__wrappedEmptyGuard=true;
   }
-}catch(e){console.warn("safe-toast-filter failed:",e)}})();</script></body>
+}catch(e){console.warn("safe-toast-filter failed:",e)}})();</script><style id="gate10-a11y-css">
+:root{--ex-ring:2px;--ex-ring-color:rgba(37,99,235,.65)}
+#ex-dock input:focus,#ex-dock button:focus,[data-ex-focus]:focus{
+  outline:var(--ex-ring) solid var(--ex-ring-color); outline-offset:2px;
+}
+</style>
+<script id="gate10-toasts-a11y-js">
+(()=>{try{
+  const 60 (s,r=document)=>r.querySelector(s);
+  const i   = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#amount") || 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyAmount") || document.querySelector("input");
+  const buy = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#buyBtn"), max = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#maxBtn"), ref = 20 20 12 61 79 80 81 98 701 33 100 204 250 395 398 399 400"#refreshBtn");
+
+  // aria labels + focus handles (idempotent)
+  if(i && !i.getAttribute("aria-label"))   i.setAttribute("aria-label","ETH amount to spend (minimum 0.001)");
+  if(buy && !buy.getAttribute("aria-label")) buy.setAttribute("aria-label","Buy EXWIFE");
+  if(max && !max.getAttribute("aria-label")) max.setAttribute("aria-label","Use maximum available ETH");
+  if(ref && !ref.getAttribute("aria-label")) ref.setAttribute("aria-label","Refresh progress");
+  [i,buy,max,ref].forEach(el=>{ if(el) el.setAttribute("data-ex-focus",""); });
+
+  // Suppress only the *first-load* noisy toast
+  const start = Date.now();
+  let firstGesture = false;
+  ["pointerdown","keydown","touchstart","click"].forEach(ev=>{
+    addEventListener(ev,()=>{ firstGesture=true; }, {once:true, capture:true});
+  });
+  const dropMsg = "Enter an amount in ETH.";
+  const wrap = (name)=>{
+    const fn = (window[name] || window.toast || window.showToast);
+    if(typeof fn !== "function") return;
+    const wrapped = (msg, type="info")=>{
+      const tooEarly = (Date.now()-start) < 2000 && !firstGesture && String(msg)===dropMsg;
+      if(tooEarly) return;
+      return fn(msg, type);
+    };
+    window[name] = wrapped;
+    if(name!=="toast") window.toast = wrapped;
+    if(name!=="showToast") window.showToast = wrapped;
+  };
+  ["toast","showToast"].forEach(wrap);
+
+  // Enter-to-buy when valid
+  const MIN = 0.001;
+  const valid = ()=>{
+    if(!i) return false;
+    const v = parseFloat((i.value||"").trim());
+    return Number.isFinite(v) && v >= MIN;
+  };
+  if(i && buy){
+    i.addEventListener("keydown",(e)=>{
+      if(e.key==="Enter" && valid()){
+        e.preventDefault();
+        try { buy.click(); } catch {}
+      }
+    }, {passive:false});
+  }
+
+  // Mobile-friendly input hints
+  if(i){
+    i.setAttribute("inputmode","decimal");
+    i.setAttribute("step","0.001");
+    if(!i.getAttribute("min")) i.setAttribute("min","0.001");
+    if(!i.getAttribute("placeholder")) i.setAttribute("placeholder","0.001 (min)");
+  }
+}catch(e){ console.warn("gate10-toasts-a11y failed:", e); }})();
+</script>
+</body>
 <script type="module">
 (() => {
   if (window.__FINAL_BUY_MODULE__) return;
