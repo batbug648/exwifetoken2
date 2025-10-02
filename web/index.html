@@ -927,6 +927,75 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
 })();
 </script>
 <!-- /UNIVERSAL CONNECT/BUY BINDER -->
+<!-- iOS Auto Deep-Link Patch -->
+<script>
+(() => {
+  // Helper: detect iOS Safari (no injected wallet)
+  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  // Carry amount in URL (?amt=0.001) and prefill on load inside wallet browser
+  (function prefillAmountFromQuery(){
+    try {
+      const url = new URL(location.href);
+      const qAmt = url.searchParams.get("amt");
+      if (qAmt) {
+        const i = document.getElementById("amount") || document.getElementById("gate10Amt");
+        if (i && !i.value) i.value = qAmt;
+      }
+    } catch {}
+  })();
+
+  // Patch existing globals if present
+  const _origConnect = window.EXWIFE_connect;
+  const _origBuy     = window.EXWIFE_buyInline;
+
+  // Pick your preferred wallet to deep-link by default
+  const PREFERRED = "metamask"; // "metamask" | "coinbase"
+
+  function deeplinkToWallet(withAmount) {
+    const host = location.host;
+    const u = new URL(location.href);
+    if (withAmount) {
+      const i = document.getElementById("amount") || document.getElementById("gate10Amt");
+      if (i && i.value) u.searchParams.set("amt", String(i.value).trim());
+    }
+    const siteURL = u.toString();
+
+    if (PREFERRED === "coinbase") {
+      // Coinbase Wallet deep-link (cb_url is the dapp URL)
+      const cb = "https://go.cb-w.com/dapp?cb_url=" + encodeURIComponent(siteURL);
+      location.href = cb;
+    } else {
+      // MetaMask deep-link to your dapp
+      const mm = "https://metamask.app.link/dapp/" + host + u.pathname + (u.search || "");
+      location.href = mm;
+    }
+  }
+
+  // Wrap connect: if on iOS without injected wallet, jump straight to wallet
+  if (typeof _origConnect === "function") {
+    window.EXWIFE_connect = async function() {
+      if (isIOS() && !window.ethereum) {
+        // Auto deep-link instead of showing banner/modals
+        deeplinkToWallet(false);
+        return;
+      }
+      return _origConnect.apply(this, arguments);
+    };
+  }
+
+  // Wrap buy: if on iOS without injected wallet, deep-link and preserve amount
+  if (typeof _origBuy === "function") {
+    window.EXWIFE_buyInline = async function() {
+      if (isIOS() && !window.ethereum) {
+        deeplinkToWallet(true); // carry amount via ?amt=
+        return;
+      }
+      return _origBuy.apply(this, arguments);
+    };
+  }
+})();
+</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
