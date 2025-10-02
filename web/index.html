@@ -787,6 +787,96 @@
   mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
+<!-- EXWIFE Runtime Scrubber v2: remove leaked inline code reliably -->
+<script>
+(() => {
+  // Phrases that should never be visible on the page
+  const SIGNATURES = [
+    "const signer = await provider.getSigner()",
+    "const presale = new ethers.Contract",
+    "buy() failed:",
+    "PRESALE_ABI_MIN",
+    "updatePausedPill()",
+    "EXWIFE v12.3 loaded"
+  ];
+
+  // If you want logs, flip to true in console: window.__EXWIFE_DEBUG_SCRUB = true
+  const D = () => !!window.__EXWIFE_DEBUG_SCRUB;
+
+  // Walk all text nodes and nuke containers that contain a signature
+  function scrubTextNodes(root=document.body) {
+    if (!root) return 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const t = (node.nodeValue || "").trim();
+        if (t.length < 20) return NodeFilter.FILTER_SKIP;
+        return SIGNATURES.some(sig => t.includes(sig))
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_SKIP;
+      }
+    });
+    let removed = 0;
+    const toRemove = new Set();
+
+    while (walker.nextNode()) {
+      const textNode = walker.currentNode;
+      let el = textNode.parentElement;
+      // climb up to a reasonably sized block (avoid removing the whole body)
+      let hops = 0;
+      while (el && el !== document.body && hops < 6) {
+        const cs = getComputedStyle(el);
+        const isBlocky = ["block","flex","grid","table","list-item"].includes(cs.display) || el.tagName.match(/^(DIV|SECTION|FOOTER|MAIN|ASIDE|P|PRE|CODE)$/);
+        const bigEnough = (el.offsetWidth >= 200 || el.offsetHeight >= 30);
+        if (isBlocky && bigEnough) break;
+        el = el.parentElement; hops++;
+      }
+      if (el && el !== document.body) toRemove.add(el);
+    }
+
+    toRemove.forEach(el => {
+      if (D()) console.warn("[EXWIFE scrub] removing leak container:", el);
+      el.style.display = "none";
+      el.remove?.();
+      removed++;
+    });
+    return removed;
+  }
+
+  // One-shot scans + mutation observer to catch future injections
+  function runScrub() {
+    let n = 0;
+    try { n += scrubTextNodes(); } catch {}
+    // also try specific “last child” containers, common for footers
+    try {
+      const last = document.body && document.body.lastElementChild;
+      if (last) n += scrubTextNodes(last);
+    } catch {}
+
+    if (D()) console.log("[EXWIFE scrub] pass removed =", n);
+    return n;
+  }
+
+  // Initial passes
+  const start = () => {
+    runScrub();
+    setTimeout(runScrub, 300);
+    setTimeout(runScrub, 1500);
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+
+  // Observe future DOM changes
+  const mo = new MutationObserver(() => runScrub());
+  mo.observe(document.documentElement, { childList: true, subtree: true });
+
+  // Expose a manual re-scrub
+  window.EXWIFE_scrubNow = runScrub;
+})();
+</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
