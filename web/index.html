@@ -652,33 +652,6 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
 })();
 
 </script>
-<script id="appkit-init">
-(async () => {
-  try {
-    // load WC AppKit + ethers if not present
-    function add(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.async=true;s.onload=res;s.onerror=()=>rej(new Error("load fail: "+src));document.head.appendChild(s);});}
-    if (!window.ethers) await add("https://unpkg.com/ethers/dist/ethers.umd.min.js");
-    if (!window.AppKit) await add("https://unpkg.com//appkit/dist/index.umd.js");
-    if (!window.AppKitEthers) await add("https://unpkg.com//appkit-adapter-ethers/dist/index.umd.js");
-
-    // init AppKit with your Project ID
-    const { createAppKit } = window.AppKit;
-    const { EthersAdapter } = window.AppKitEthers;
-    const ethersAdapter = new EthersAdapter();
-    window.appKit = await createAppKit({
-      projectId: "",
-      adapters: [ethersAdapter],
-      metadata: {
-        name: "EXWIFE Presale",
-        description: "Buy EXWIFE tokens",
-        url: "https://exwifetoken.com",
-        icons: ["https://exwifetoken.com/img/exwife-hero.png"]
-      }
-    });
-    console.log("[Gate10] AppKit initialized with Project ID", "");
-  } catch(e){ console.error("AppKit init failed",e); }
-})();
-</script>
 
 <script id="wc-lazy-connect">
 (() => {
@@ -747,6 +720,127 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
   }, { once:false });
 })();
 </script>
+
+<!-- WC UMD (safe) -->
+<script src="https://unpkg.com//modal.6.2/dist/index.umd.js"></script>
+<script src="https://unpkg.com//ethereum-provider.11.2/dist/index.umd.js"></script>
+<!-- /WC UMD -->
+
+<!-- WC UMD (stable) -->
+<script src="https://unpkg.com/@walletconnect/modal@2.6.2/dist/index.umd.js"></script>
+<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.2/dist/index.umd.js"></script>
+<!-- /WC UMD -->
+
+<!-- BEGIN GATE10_MOBILE_CONNECT_BUY -->
+<script>
+(() => {
+  const PROJECT_ID = "3d93076061de5b64f55d16591d98dad5";
+  const PRESALE = (window.PRESALE_ADDRESS || "0xF4A37B656A33d418FB37280c9304274078A9b3ed");
+  const PRESALE_ABI_MIN = ["function buy() payable","function paused() view returns (bool)"];
+
+  let _eip1193=null, _provider=null, _signer=null;
+  const byId=(id)=>document.getElementById(id);
+  const toast=(window.toast||{info:console.log, ok:console.log, err:console.error});
+  const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+
+  function ensureNoWalletBanner(){
+    if (window.ethereum || document.querySelector("#noWalletBanner")) return;
+    const host=location.host;
+    const div=document.createElement("div");
+    div.id="noWalletBanner";
+    div.style.cssText="position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:14px;box-shadow:0 8px 26px rgba(0,0,0,.3);z-index:9999";
+    div.innerHTML='<div style="font-weight:600;margin-bottom:6px">No wallet detected</div><div style="opacity:.9;margin-bottom:10px">Open in a mobile wallet:</div><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="https://metamask.app.link/dapp/'+host+'" target="_blank" style="padding:8px 12px;background:#f6851b;color:#111;border-radius:10px;font-weight:600;text-decoration:none">Open in MetaMask</a><a href="https://go.cb-w.com/dapp?cb_url='+encodeURIComponent(location.href)+'" target="_blank" style="padding:8px 12px;background:#0052ff;color:#fff;border-radius:10px;font-weight:600;text-decoration:none">Open in Coinbase Wallet</a></div>';
+    document.body.appendChild(div);
+  }
+
+  async function wcInit(chainId=1){
+    const EthereumProvider=window.WalletConnectEthereumProvider?.default||window.WalletConnectEthereumProvider;
+    if(!EthereumProvider) throw new Error("WalletConnect provider not loaded");
+    return await EthereumProvider.init({
+      projectId: PROJECT_ID, chains:[chainId], showQrModal:true,
+      methods:["eth_sendTransaction","eth_sign","personal_sign","eth_signTypedData","eth_signTypedData_v4","wallet_switchEthereumChain","wallet_addEthereumChain"],
+      optionalMethods:["eth_accounts","eth_requestAccounts"],
+      events:["chainChanged","accountsChanged","disconnect"]
+    });
+  }
+
+  async function connectWallet(){
+    try{
+      if(window.ethereum?.request){
+        await window.ethereum.request({method:"eth_requestAccounts"});
+        _eip1193=window.ethereum;
+        _provider=new ethers.BrowserProvider(_eip1193);
+        _signer=await _provider.getSigner();
+        toast.ok("Wallet connected");
+        return {type:"injected", provider:_provider};
+      }
+      const wc=await wcInit(1);
+      await wc.enable();
+      _eip1193=wc;
+      _provider=new ethers.BrowserProvider(_eip1193);
+      _signer=await _provider.getSigner();
+      toast.ok("Wallet connected via WalletConnect");
+      return {type:"walletconnect", provider:_provider};
+    }catch(e){
+      toast.err("Connect failed: "+(e?.message||e));
+      if(isIOS()) ensureNoWalletBanner();
+      throw e;
+    }
+  }
+
+  async function handleBuyMobileSafe(){
+    const amtEl=byId("amount")||byId("gate10Amt");
+    const raw=amtEl?.value?.trim();
+    if(!raw){ toast.err("Enter an amount in ETH."); return; }
+    try{ if(!_signer) await connectWallet(); } catch { return; }
+
+    try{
+      const net=await _provider.getNetwork();
+      if(Number(net.chainId)!==1){
+        try{ await _eip1193.request({method:"wallet_switchEthereumChain", params:[{chainId:"0x1"}]}); }
+        catch{ toast.err("Please switch to Ethereum Mainnet in your wallet."); return; }
+      }
+    }catch(e){ console.warn("Network check failed:", e); }
+
+    try{
+      const presale=new ethers.Contract(PRESALE,PRESALE_ABI_MIN,_signer);
+      let paused=false; try{ paused=await presale.paused(); } catch{}
+      if(paused){ toast.err("Presale is paused."); return; }
+      const amtWei=ethers.parseEther(String(raw));
+      toast.info("Submitting transaction… Confirm in your wallet");
+      const tx=await presale.buy({ value: amtWei });
+      const rc=await tx.wait();
+      toast.ok("Success! Hash: "+(tx.hash||rc?.hash));
+      if(typeof window.EXWIFE_refreshRaised==="function"){
+        try{ await window.EXWIFE_refreshRaised(); } catch(e){ console.warn("refreshRaised failed:", e); }
+      }
+    }catch(e){
+      toast.err("Buy error: "+(e?.shortMessage||e?.message||e));
+      console.error(e);
+    }
+  }
+
+  function wireUI(){
+    const connectBtn=document.getElementById("connectBtn")||document.getElementById("gate10Connect")||document.querySelector("[data-connect]");
+    const buyBtn=document.getElementById("buyBtn")||document.getElementById("gate10Buy")||document.querySelector("[data-buy]");
+    if(connectBtn && !connectBtn.__wired){
+      ["click","touchend"].forEach(evt=>connectBtn.addEventListener(evt,e=>{e.preventDefault();connectWallet();},{passive:true}));
+      connectBtn.__wired=true;
+    }
+    if(buyBtn && !buyBtn.__wired){
+      ["click","touchend"].forEach(evt=>buyBtn.addEventListener(evt,async e=>{e.preventDefault();await handleBuyMobileSafe();},{passive:true}));
+      buyBtn.__wired=true;
+    }
+  }
+
+  window.EXWIFE_connect=connectWallet;
+  window.EXWIFE_buyInline=handleBuyMobileSafe;
+
+  document.addEventListener("DOMContentLoaded", wireUI);
+  setTimeout(wireUI, 500);
+})();
+</script>
+<!-- END GATE10_MOBILE_CONNECT_BUY -->
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
