@@ -393,34 +393,6 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
         setStatus('Wallet connected');
         updateNetworkPill();
       });
-      el('buyBtn')?.addEventListener('click', buyInline);
-
-      // Keep Buy label in sync with amount
-      const amt = el('buyAmount'); const buy = el('buyBtn');
-      if (amt && buy) {
-        const sync = () => { buy.textContent = `Buy ${amt.value || '0.01'} ETH`; };
-        amt.addEventListener('input', sync); sync();
-      }
-
-      // React to wallet changes
-      if (window.ethereum?.on) {
-        window.ethereum.on('chainChanged', () => updateNetworkPill());
-        window.ethereum.on('accountsChanged', () => updateNetworkPill());
-      }
-
-      // Initial paint + auto-refresh + initial pills
-      const tick = async () => { try { await window.EXWIFE_refreshRaised(); } catch (e) { console.warn('tick failed:', e); } };
-      tick();
-      updatePausedPill();
-      updateNetworkPill();
-      window.EXWIFE_AUTO = window.EXWIFE_AUTO || {};
-      clearInterval(window.EXWIFE_AUTO.raised);
-      window.EXWIFE_AUTO.raised = setInterval(tick, 20000);
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
-
-      console.log('EXWIFE v12.3 loaded (goal:', window.GOAL_ETH, 'ETH)');
-    })();
-  </script>
 
   <!-- Toasts UI (kept) -->
   <style>
