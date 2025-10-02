@@ -213,6 +213,120 @@
 
 </head>
 <body>
+<!-- EXWIFE Eliminator v7: remove leaked code text across DOM + shadow DOM + same-origin iframes -->
+<script>
+(() => {
+  const SIGS = [
+    "provider.getSigner",
+    "new ethers.Contract(",
+    "presale.buy({ value:",
+    "PRESALE_ADDRESS",
+    "PRESALE_ABI_MIN",
+    "Buy submitted!",
+    "✅ Confirmed"
+  ];
+  const match = t => !!t && t.length > 20 && SIGS.some(s => t.includes(s));
+
+  function removeIfMatch(el) {
+    if (!el || !el.isConnected) return false;
+    const txt = (el.innerText || el.textContent || "");
+    if (match(txt)) {
+      try { el.remove(); } catch { el.style && (el.style.display = "none"); }
+      return true;
+    }
+    return false;
+  }
+
+  function killBareBodyText(doc) {
+    let nuke = 0;
+    const body = doc.body;
+    if (!body) return 0;
+    Array.from(body.childNodes).forEach(n => {
+      if (n.nodeType === 3 && match(n.nodeValue)) { n.nodeValue = ""; nuke++; }
+    });
+    return nuke;
+  }
+
+  function scanDoc(doc) {
+    if (!doc) return 0;
+    let removed = 0;
+    try { removed += killBareBodyText(doc); } catch {}
+    try { doc.querySelectorAll("*").forEach(el => { removed += removeIfMatch(el) ? 1 : 0; }); } catch {}
+    // shadow DOMs inside this doc
+    try {
+      (function walk(node){
+        if (!node) return;
+        if (node.shadowRoot) {
+          node.shadowRoot.querySelectorAll?.("*").forEach(el => { removed += removeIfMatch(el) ? 1 : 0; });
+          walk(node.shadowRoot);
+        }
+        node.childNodes && node.childNodes.forEach && node.childNodes.forEach(walk);
+      })(doc.body || doc);
+    } catch {}
+    return removed;
+  }
+
+  function scanAll() {
+    let total = 0;
+    // main document
+    total += scanDoc(document);
+    // same-origin iframes
+    document.querySelectorAll("iframe").forEach(ifr => {
+      try {
+        const idoc = ifr.contentDocument || ifr.contentWindow?.document;
+        if (idoc) total += scanDoc(idoc);
+      } catch {} // cross-origin -> ignore
+    });
+    return total;
+  }
+
+  function observeDoc(doc) {
+    try {
+      const mo = new MutationObserver(() => scanDoc(doc));
+      mo.observe(doc.documentElement || doc, { childList: true, subtree: true, characterData: true });
+    } catch {}
+  }
+
+  function boot() {
+    scanAll();
+    setTimeout(scanAll, 10);
+    setTimeout(scanAll, 50);
+    setTimeout(scanAll, 200);
+    setTimeout(scanAll, 1000);
+
+    observeDoc(document);
+    // observe iframes (same-origin) when they load
+    const watchIframes = () => {
+      document.querySelectorAll("iframe").forEach(ifr => {
+        try {
+          ifr.addEventListener("load", () => {
+            try {
+              const idoc = ifr.contentDocument || ifr.contentWindow?.document;
+              if (idoc) { scanDoc(idoc); observeDoc(idoc); }
+            } catch {}
+          }, { once: true });
+          const idoc = ifr.contentDocument || ifr.contentWindow?.document;
+          if (idoc) { scanDoc(idoc); observeDoc(idoc); }
+        } catch {}
+      });
+    };
+    watchIframes();
+
+    // Also re-scan at animation frames briefly
+    let c = 0; const max = 180; // ~3s
+    (function tick(){ scanAll(); if (++c < max) requestAnimationFrame(tick); })();
+  }
+
+  if (document.readyState === "loading") {
+    const i = setInterval(() => { if (document.body) { clearInterval(i); boot(); } }, 5);
+  } else {
+    boot();
+  }
+
+  // Manual trigger
+  window.EXWIFE_scrubNow = () => scanAll();
+})();
+</script>
 <!-- EXWIFE bad-script killer: remove any <script> containing legacy buy code -->
 <script>
 (() => {
