@@ -1119,6 +1119,60 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
   window.EXWIFE_scrubNow = () => cleanTail();
 })();
 </script>
+<!-- EXWIFE pinpoint remover: delete element that prints the exact buy() snippet -->
+<script>
+(() => {
+  const PHRASE = "const signer = await provider.getSigner()"; // exact string you still see
+
+  function removeFirstMatchInDoc(doc) {
+    if (!doc) return false;
+    // 1) Inline <script> with that text
+    const badScript = [...doc.querySelectorAll("script")].find(s => !s.src && (s.textContent||"").includes(PHRASE));
+    if (badScript) { try{ badScript.remove(); }catch{} return true; }
+
+    // 2) Any visible element printing it
+    const el = [...doc.querySelectorAll("*")].find(e => {
+      const txt = (e.innerText || e.textContent || "");
+      return txt && txt.includes(PHRASE);
+    });
+    if (el) { try{ el.remove(); }catch{ el.style.display="none"; } return true; }
+
+    // 3) Bare text nodes (including under <body>)
+    const it = doc.createTreeWalker(doc.body || doc, NodeFilter.SHOW_TEXT, null);
+    let n; while ((n = it.nextNode())) {
+      if ((n.nodeValue||"").includes(PHRASE)) { n.nodeValue = ""; return true; }
+    }
+    return false;
+  }
+
+  function sweepAll() {
+    let hit = removeFirstMatchInDoc(document);
+    // same-origin iframes too
+    document.querySelectorAll("iframe").forEach(ifr => {
+      if (hit) return;
+      try {
+        const idoc = ifr.contentDocument || ifr.contentWindow?.document;
+        if (idoc) hit = removeFirstMatchInDoc(idoc) || hit;
+      } catch {}
+    });
+    return hit;
+  }
+
+  function boot() {
+    // a few early passes
+    sweepAll(); setTimeout(sweepAll, 50); setTimeout(sweepAll, 200); setTimeout(sweepAll, 800);
+    // light observer to catch late injection
+    try {
+      const mo = new MutationObserver(() => sweepAll());
+      mo.observe(document.documentElement, {childList:true, subtree:true, characterData:true});
+    } catch {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once:true });
+  } else { boot(); }
+})();
+</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
