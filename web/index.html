@@ -877,6 +877,129 @@
   window.EXWIFE_scrubNow = runScrub;
 })();
 </script>
+<!-- EXWIFE Runtime Scrubber v3: deep (DOM + shadow DOM) -->
+<script>
+(() => {
+  // Flip on verbose logs with: window.__EXWIFE_DEBUG_SCRUB = true
+  const DEBUG = () => !!window.__EXWIFE_DEBUG_SCRUB;
+
+  // Phrases that should NEVER be visible
+  const SIGS = [
+    "const signer = await provider.getSigner()",
+    "const presale = new ethers.Contract",
+    "PRESALE_ABI_MIN",
+    "buy() failed:",
+    "setStatus('✅ Confirmed')",
+    "EXWIFE v12.3 loaded"
+  ];
+
+  // Helper to iterate all nodes including shadow roots
+  function* deepNodes(root) {
+    const stack = [root];
+    while (stack.length) {
+      const n = stack.pop();
+      yield n;
+      // Shadow root
+      if (n.shadowRoot) stack.push(n.shadowRoot);
+      // Light DOM
+      if (n.childNodes) {
+        for (let i = n.childNodes.length - 1; i >= 0; i--) {
+          stack.push(n.childNodes[i]);
+        }
+      }
+      // If this is a DocumentFragment (e.g., shadowRoot), still iterate children via childNodes above
+    }
+  }
+
+  function looksLikeLeakText(t) {
+    if (!t) return false;
+    const s = t.trim();
+    if (s.length < 20) return false;
+    return SIGS.some(sig => s.includes(sig));
+  }
+
+  // Find the nearest sensible container to remove
+  function nearestContainer(el) {
+    let hops = 0;
+    while (el && el !== document.body && hops < 8) {
+      const tag = el.tagName ? el.tagName.toLowerCase() : "";
+      if (["pre","code","footer","div","section","aside","main","p"].includes(tag)) return el;
+      el = el.parentElement || el.host || el.parentNode;
+      hops++;
+    }
+    return null;
+  }
+
+  function scrubOnce(root = document.body) {
+    if (!root) return 0;
+    const toRemove = new Set();
+
+    for (const n of deepNodes(root)) {
+      // Text node?
+      if (n.nodeType === 3) {
+        if (looksLikeLeakText(n.nodeValue)) {
+          let el = n.parentElement || (n.getRootNode && n.getRootNode().host) || null;
+          const container = nearestContainer(el) || el;
+          if (container && container !== document.body) toRemove.add(container);
+        }
+      }
+      // Elements that might dump text
+      else if (n.nodeType === 1) {
+        const el = n;
+        // Skip if not connected or hidden
+        if (!el.isConnected) continue;
+        const text = (el.innerText || el.textContent || "");
+        if (looksLikeLeakText(text)) {
+          const container = nearestContainer(el) || el;
+          if (container && container !== document.body) toRemove.add(container);
+        }
+      }
+    }
+
+    let removed = 0;
+    toRemove.forEach(el => {
+      if (DEBUG()) console.warn("[EXWIFE scrub v3] removing leak container:", el);
+      // Try to hide immediately, then remove
+      el.style.display = "none";
+      try { el.remove(); } catch {}
+      removed++;
+    });
+    return removed;
+  }
+
+  // Run now, again soon, and on every repaint for a short time
+  function runPasses() {
+    let passes = 0;
+    const maxPasses = 20; // ~2 seconds of rAF at 60fps
+    function tick() {
+      scrubOnce();
+      if (++passes < maxPasses) requestAnimationFrame(tick);
+    }
+    scrubOnce();
+    setTimeout(() => scrubOnce(), 300);
+    setTimeout(() => scrubOnce(), 1500);
+    requestAnimationFrame(tick);
+  }
+
+  // Observe DOM + shadow DOM changes
+  let mo;
+  function startObserver() {
+    try {
+      mo = new MutationObserver(() => scrubOnce());
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch {}
+  }
+
+  // Public hook to re-scrub on demand
+  window.EXWIFE_scrubNow = () => scrubOnce();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => { runPasses(); startObserver(); }, { once:true });
+  } else {
+    runPasses(); startObserver();
+  }
+})();
+</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
