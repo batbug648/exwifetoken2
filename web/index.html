@@ -213,179 +213,6 @@
 
 </head>
 <body>
-<!-- EXWIFE Eliminator v7: remove leaked code text across DOM + shadow DOM + same-origin iframes -->
-<script>
-(() => {
-  const SIGS = [
-    "provider.getSigner",
-    "new ethers.Contract(",
-    "presale.buy({ value:",
-    "PRESALE_ADDRESS",
-    "PRESALE_ABI_MIN",
-    "Buy submitted!",
-    "✅ Confirmed"
-  ];
-  const match = t => !!t && t.length > 20 && SIGS.some(s => t.includes(s));
-
-  function removeIfMatch(el) {
-    if (!el || !el.isConnected) return false;
-    const txt = (el.innerText || el.textContent || "");
-    if (match(txt)) {
-      try { el.remove(); } catch { el.style && (el.style.display = "none"); }
-      return true;
-    }
-    return false;
-  }
-
-  function killBareBodyText(doc) {
-    let nuke = 0;
-    const body = doc.body;
-    if (!body) return 0;
-    Array.from(body.childNodes).forEach(n => {
-      if (n.nodeType === 3 && match(n.nodeValue)) { n.nodeValue = ""; nuke++; }
-    });
-    return nuke;
-  }
-
-  function scanDoc(doc) {
-    if (!doc) return 0;
-    let removed = 0;
-    try { removed += killBareBodyText(doc); } catch {}
-    try { doc.querySelectorAll("*").forEach(el => { removed += removeIfMatch(el) ? 1 : 0; }); } catch {}
-    // shadow DOMs inside this doc
-    try {
-      (function walk(node){
-        if (!node) return;
-        if (node.shadowRoot) {
-          node.shadowRoot.querySelectorAll?.("*").forEach(el => { removed += removeIfMatch(el) ? 1 : 0; });
-          walk(node.shadowRoot);
-        }
-        node.childNodes && node.childNodes.forEach && node.childNodes.forEach(walk);
-      })(doc.body || doc);
-    } catch {}
-    return removed;
-  }
-
-  function scanAll() {
-    let total = 0;
-    // main document
-    total += scanDoc(document);
-    // same-origin iframes
-    document.querySelectorAll("iframe").forEach(ifr => {
-      try {
-        const idoc = ifr.contentDocument || ifr.contentWindow?.document;
-        if (idoc) total += scanDoc(idoc);
-      } catch {} // cross-origin -> ignore
-    });
-    return total;
-  }
-
-  function observeDoc(doc) {
-    try {
-      const mo = new MutationObserver(() => scanDoc(doc));
-      mo.observe(doc.documentElement || doc, { childList: true, subtree: true, characterData: true });
-    } catch {}
-  }
-
-  function boot() {
-    scanAll();
-    setTimeout(scanAll, 10);
-    setTimeout(scanAll, 50);
-    setTimeout(scanAll, 200);
-    setTimeout(scanAll, 1000);
-
-    observeDoc(document);
-    // observe iframes (same-origin) when they load
-    const watchIframes = () => {
-      document.querySelectorAll("iframe").forEach(ifr => {
-        try {
-          ifr.addEventListener("load", () => {
-            try {
-              const idoc = ifr.contentDocument || ifr.contentWindow?.document;
-              if (idoc) { scanDoc(idoc); observeDoc(idoc); }
-            } catch {}
-          }, { once: true });
-          const idoc = ifr.contentDocument || ifr.contentWindow?.document;
-          if (idoc) { scanDoc(idoc); observeDoc(idoc); }
-        } catch {}
-      });
-    };
-    watchIframes();
-
-    // Also re-scan at animation frames briefly
-    let c = 0; const max = 180; // ~3s
-    (function tick(){ scanAll(); if (++c < max) requestAnimationFrame(tick); })();
-  }
-
-  if (document.readyState === "loading") {
-    const i = setInterval(() => { if (document.body) { clearInterval(i); boot(); } }, 5);
-  } else {
-    boot();
-  }
-
-  // Manual trigger
-  window.EXWIFE_scrubNow = () => scanAll();
-})();
-</script>
-<!-- EXWIFE bad-script killer: remove any <script> containing legacy buy code -->
-<script>
-(() => {
-  const SIGS = [
-    "provider.getSigner",
-    "new ethers.Contract(",
-    "presale.buy({ value:",
-    "PRESALE_ADDRESS",
-    "PRESALE_ABI_MIN",
-    "Buy submitted!",
-    "✅ Confirmed"
-  ];
-  const looksBad = t => !!t && t.length > 40 && SIGS.some(s => t.includes(s));
-
-  function killScripts(root=document) {
-    let removed = 0;
-    root.querySelectorAll?.("script").forEach(s => {
-      const txt = s.textContent || "";
-      if (looksBad(txt)) { try { s.remove(); removed++; } catch {} }
-    });
-    return removed;
-  }
-
-  function boot() {
-    // Early passes
-    killScripts(document);
-    setTimeout(() => killScripts(document), 10);
-    setTimeout(() => killScripts(document), 50);
-    setTimeout(() => killScripts(document), 200);
-    setTimeout(() => killScripts(document), 1000);
-
-    // Keep watching for future injections
-    try {
-      const mo = new MutationObserver(muts => {
-        for (const m of muts) {
-          m.addedNodes && m.addedNodes.forEach(n => {
-            if (n.nodeType === 1) {
-              if (n.tagName === "SCRIPT") {
-                const txt = n.textContent || "";
-                if (looksBad(txt)) { try { n.remove(); } catch {} }
-              } else {
-                // scan any scripts under this subtree
-                killScripts(n);
-              }
-            }
-          });
-        }
-      });
-      mo.observe(document.documentElement, { childList: true, subtree: true });
-    } catch {}
-  }
-
-  if (document.readyState === "loading") {
-    const i = setInterval(() => { if (document.body) { clearInterval(i); boot(); } }, 5);
-  } else {
-    boot();
-  }
-})();
-</script>
 
   <!-- Hero -->
   <header style="max-width:980px;margin:24px auto 6px;padding:0 12px;text-align:center">
@@ -488,6 +315,321 @@
     await window.EXWIFE_refreshRaised();
 
   } catch (e) {
+    console.error('buy() failed:', e);
+    setStatus('❌ Error');
+    const msg = (e?.reason || e?.data?.message || e?.message || String(e));
+    if (/insufficient funds/i.test(msg)) {
+      showToast('Insufficient ETH', 'Top up for gas/amount', 'err', 6000);
+    } else if (/user rejected/i.test(msg)) {
+      showToast('Transaction rejected', '', 'err', 4200);
+    } else {
+      showToast('Buy failed', msg, 'err', 6500);
+    }
+  }
+}
+
+    // --- Paused pill updater; combines with network pill to control BUY ---
+    async function updatePausedPill(){
+      try {
+        const ro = await getRO();
+        const c  = new ethers.Contract(window.PRESALE_ADDRESS, window.PRESALE_ABI_MIN, ro);
+        let isPaused = false; try { isPaused = await c.paused(); } catch (e) {}
+        window.EXWIFE_STATE.paused = isPaused;
+        setStatus(isPaused ? 'Paused' : 'Ready');
+        await updateNetworkPill();
+      } catch (e) {}
+    }
+
+    // Countdown banner (America/Chicago close time)
+    const PRESALE_CLOSE_UNIX = Math.floor(new Date('2025-10-12T23:59:59-05:00').getTime() / 1000);
+    (function bannerCountdown(){
+      const countdownEl = document.getElementById('countdown');
+      if (!countdownEl) return;
+      function render() {
+        const now = Math.floor(Date.now() / 1000);
+        let diff = PRESALE_CLOSE_UNIX - now;
+        if (diff <= 0) { countdownEl.textContent = '— closed'; return; }
+        const d = Math.floor(diff / 86400); diff %= 86400;
+        const h = Math.floor(diff / 3600);  diff %= 3600;
+        const m = Math.floor(diff / 60);    const s = diff % 60;
+        countdownEl.textContent = `— ${d}d ${h}h ${m}m ${s}s left`;
+      }
+      render();
+      setInterval(render, 1000);
+    })();
+
+    // Optional: RPC/wallet helpful toasts based on the net pill
+    (function rpcGuard(){
+      const pill = document.getElementById('netPill');
+      if (!pill) return;
+      const check = () => {
+        const t = (pill.textContent || '').trim();
+        if (t.includes('No Wallet')) {
+} else if (t.includes('Wrong')) {
+  showToast('Wrong network', 'Please switch to Ethereum Mainnet (or Sepolia)', 'err', 5000);
+}
+      };
+      setInterval(check, 8000);
+      setTimeout(check, 1500);
+    })();
+
+    // --- Boot ---
+    (function boot(){
+      const addr = window.PRESALE_ADDRESS || '(missing)';
+
+      // Static bits
+      el('addr') && (el('addr').textContent = addr);
+      // Default explorer to Mainnet; will be updated after connect if on Sepolia
+el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`);
+
+      // Listeners
+      el('copyBtn')?.addEventListener('click', () => navigator.clipboard.writeText(addr));
+      el('refreshBtn')?.addEventListener('click', () => EXWIFE_refreshRaised());
+      el('connectBtn')?.addEventListener('click', async () => {
+        if (!window.ethereum) { showToast('Install MetaMask to connect.', '', 'info'); return; }
+        const mm = (window.ethereum.providers || []).find(p => p.isMetaMask)
+                  || (window.ethereum.isMetaMask ? window.ethereum : window.ethereum);
+        await mm.request({ method: 'eth_requestAccounts' });
+        setStatus('Wallet connected');
+        updateNetworkPill();
+      });
+
+  <!-- Toasts UI (kept) -->
+  <style>
+    #exwifeToastHost{position:fixed;right:16px;top:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+    .exwifeToast{min-width:280px;max-width:360px;background:#101010;color:#eee;border:1px solid #2b2b2b;border-radius:14px;
+      padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);font:14px/1.3 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      pointer-events:auto;opacity:0;transform:translateY(-6px);transition:opacity .18s ease, transform .18s ease}
+    .exwifeToast.show{opacity:1;transform:translateY(0)}
+    .exwifeToast .hdr{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px}
+    .exwifeToast .msg{opacity:.9;word-wrap:break-word}
+    .exwifeToast.success{border-color:#235c2a}
+    .exwifeToast.success .dot{width:10px;height:10px;border-radius:999px;background:#8df58d}
+    .exwifeToast.error{border-color:#6a2525}
+    .exwifeToast.error .dot{width:10px;height:10px;border-radius:999px;background:#ff8a8a}
+    .exwifeToast.info{border-color:#2b2b2b}
+    .exwifeToast.info .dot{width:10px;height:10px;border-radius:999px;background:#9bb2ff}
+    .exwifeToast .x{margin-left:auto;opacity:.7;cursor:pointer}
+  </style>
+  <div id="exwifeToastHost" aria-live="polite"></div>
+  
+
+  <!-- Progress Animation (kept) -->
+  <style>
+    #progFill, [data-exwife-progress-fill]{ transition: width .9s cubic-bezier(.22,.8,.26,.99); will-change: width; }
+  </style>
+  
+
+  <!-- Owner Panel (kept; now neutral to network) -->
+  <style>
+    #ownerPanel{position:fixed;right:12px;bottom:12px;z-index:9999}
+    #ownerPanel details{background:#111;color:#eee;border:1px solid #333;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.35);min-width:320px}
+    #ownerPanel summary{cursor:pointer;list-style:none;font-weight:700}
+    #ownerPanel .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    #ownerPanel button{border:1px solid #2b2b2b;border-radius:12px;padding:8px 10px;cursor:pointer;background:#1b1b1b;color:#fff}
+    #ownerPanel button[disabled]{opacity:.45;cursor:not-allowed}
+    #ownerPanel .pill{display:inline-block;border:1px solid #2b2b2b;border-radius:999px;padding:2px 8px;margin-left:6px;font-size:12px}
+    #ownerPanel .ok{color:#8df58d;border-color:#285e28}
+    #ownerPanel .warn{color:#ffd16b;border-color:#7a5b24}
+    #ownerPanel .bad{color:#ff8a8a;border-color:#6a2525}
+    #ownerPanel .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  </style>
+
+  <div id="ownerPanel">
+    <details>
+      <summary>Owner Panel
+        <span id="opNet"  class="pill mono">…</span>
+        <span id="opStat" class="pill mono">…</span>
+      </summary>
+      <div style="margin-top:8px;font-size:12px;opacity:.8">
+        Presale: <span class="mono" id="opAddr">...</span>
+      </div>
+      <div class="row">
+        <button id="opConnectBtn" title="Connect wallet (user-initiated)">Connect</button>
+        <button id="opRefreshBtn" title="Refresh panel/status">Refresh</button>
+      </div>
+      <div style="margin-top:8px;font-size:12px">
+        Wallet: <span id="opAcct" class="mono">not connected</span>
+      </div>
+      <div style="margin-top:8px">
+        Raised: <span id="opRaised" class="mono">…</span> ETH
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="opPauseBtn"   title="This presale is windowed; pause/unpause not available" disabled>Pause (n/a)</button>
+        <button id="opUnpauseBtn" title="This presale is windowed; pause/unpause not available" disabled>Unpause (n/a)</button>
+        <button id="opWithdrawBtn">Withdraw</button>
+        <button id="opFinalizeBtn">Finalize</button>
+      </div>
+      <div id="opMsg" style="margin-top:8px;font-size:12px;opacity:.85"></div>
+    </details>
+  </div>
+
+  
+
+  <!-- Force mainnet reader block was removed (we already have EXWIFE_refreshRaised above) -->
+
+<script id="gate10-inline-amount">
+/* gate10-inline-amount v5: adds WalletConnect provider when no injected wallet */
+(() => {
+  try {
+    const $  = (s,r=document)=>r.querySelector(s);
+    const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+    let buy = $('#buyBtn'); if (!buy) return;
+
+    // --- UI (single Amount field & clean) ---
+    let label = $('#amountLabel');
+    if (!label) { label = document.createElement('label'); label.id='amountLabel'; label.htmlFor='amount'; label.textContent='Amount (ETH)';
+      label.style.cssText='display:block;margin:8px 0 4px;font-weight:600;font-size:14px;'; buy.parentNode.insertBefore(label,buy); }
+    let amt = $('#amount'); if (!amt) { amt=document.createElement('input'); amt.id='amount'; amt.type='text'; buy.parentNode.insertBefore(amt,buy); }
+    Object.assign(amt, { inputMode:'decimal', autocomplete:'off', spellcheck:false, placeholder: amt.placeholder||'e.g., 0.001' });
+    amt.setAttribute('min','0.001'); amt.setAttribute('step','0.001');
+    amt.style.cssText='display:block;width:100%;max-width:320px;box-sizing:border-box;padding:10px 12px;border:1px solid #ccc;border-radius:12px;font-size:16px;line-height:1.3;margin:0 0 8px';
+
+    // Hide any other amount-like inputs
+    $$('#amount, input[data-amount], input[name="amount"], input[type="number"], input[inputmode="decimal"], input[inputmode="numeric"]').forEach(x=>{ if(x!==amt) x.style.display='none'; });
+
+    // Helpful mini Connect button (shown when needed)
+    let connect = $('#connectBtn'); if (!connect) {
+      connect = document.createElement('button'); connect.id='connectBtn'; connect.type='button';
+      connect.textContent = 'Connect Wallet';
+      connect.style.cssText='display:inline-block;margin:0 0 10px 0;padding:8px 12px;border-radius:10px;border:1px solid #bbb;background:#f6f7f9;color:#111;font-size:14px';
+      buy.parentNode.insertBefore(connect, label);
+    }
+
+    // Banner for non-injected environments (Safari) – will be replaced by WalletConnect flow
+    const showNoWalletBanner = () => {
+      let bar = $('#noWalletBar');
+      if (window.ethereum) { if (bar) bar.remove(); return; }
+      if (!bar) {
+        bar = document.createElement('div'); bar.id='noWalletBar';
+        bar.style.cssText='margin:8px 0 12px 0;padding:10px;border:1px solid #e6b800;background:#fff8e1;border-radius:12px;color:#553;max-width:520px';
+        bar.textContent = 'No wallet detected. Tap Connect to use WalletConnect.';
+        connect.parentNode.insertBefore(bar, connect);
+      }
+    };
+
+    const toast = {
+      info:(m)=>(window.toast?.info||console.log)(m),
+      ok:(m)=>(window.toast?.ok||console.log)(m),
+      err:(m)=>(window.toast?.err||console.error)(m)
+    };
+    const norm = v => (v==null?'':String(v).trim()).replace(/[, ]+/g,'');
+    const isNum = s => /^[0-9]*\.?[0-9]+$/.test(s);
+    const readAmt = () => { const s=norm(amt.value); return s&&isNum(s) ? s : null; };
+    const MIN = 0.001;
+    const gate = () => { const n=parseFloat(readAmt()??'NaN'); const ok=Number.isFinite(n)&&n>=MIN; buy.disabled=!ok; return ok; };
+    if (!amt.value) amt.value=''; ['input','change','keyup'].forEach(ev=>amt.addEventListener(ev,gate,{passive:true})); gate();
+    amt.addEventListener('keypress',e=>{ if(e.key==='Enter'){ e.preventDefault(); buy.click(); } }, {passive:false});
+
+    // --- WalletConnect provider if no injected window.ethereum ---
+    let wcProvider; // will also set window.ethereum to this, so the rest of the site works
+    async function ensureProvider() {
+      if (window.ethereum) return window.ethereum;
+      if (!window.WalletConnectProvider?.EthereumProvider) {
+        showNoWalletBanner(); throw new Error('WalletConnect not loaded');
+      }
+      wcProvider = await window.WalletConnectProvider.EthereumProvider.init({
+        projectId: 'YOUR_WALLETCONNECT_PROJECT_ID',   // <- replace this
+        showQrModal: true,
+        chains: [1],  // Ethereum mainnet
+        methods: ['eth_sendTransaction','eth_sign','personal_sign','eth_signTypedData'],
+        optionalMethods: ['eth_accounts','eth_chainId','eth_requestAccounts','wallet_switchEthereumChain']
+      });
+      await wcProvider.enable(); // opens wallet selection / deep link on iPhone
+      // Polyfill to behave like an injected provider
+      window.ethereum = wcProvider;
+      return wcProvider;
+    }
+
+    // --- Fallback handleBuy (ethers v6) if page didn’t define one
+    (function installHandleBuy(){
+      if (typeof window.handleBuy === 'function') return;
+      if (!window.ethers) { console.warn('[Gate10] ethers.js not found'); return; }
+      const PRESALE = window.PRESALE_ADDRESS
+        || (window.EXWIFE_ENV && (window.EXWIFE_ENV.presale || window.EXWIFE_ENV.PRESALE))
+        || '0xF4A37B656A33d418FB37280c9304274078A9b3ed';
+      const ABI = ["function buy() payable"];
+
+      const sanitizeAmount = (x) => {
+        if (x && typeof x === 'object' && ('type' in x || 'preventDefault' in x)) {
+          const s = readAmt(); if (!s) throw new Error('Enter an amount (ETH).'); return parseFloat(s);
+        }
+        const s = norm(x); if (!s || !isNum(s)) throw new Error('Enter a valid amount (ETH).');
+        return parseFloat(s);
+      };
+
+      window.handleBuy = async function(amountEth){
+        const providerLike = await ensureProvider(); // injected or WC
+        const provider = new ethers.BrowserProvider(providerLike);
+        // connect (WalletConnect handles this inside enable, but harmless to call)
+        try {
+          const accts = await providerLike.request?.({ method:'eth_accounts' });
+          if (!accts || !accts.length) await providerLike.request?.({ method:'eth_requestAccounts' });
+        } catch {}
+        const signer = await provider.getSigner();
+        const presale = new ethers.Contract(PRESALE, ABI, signer);
+        const n = sanitizeAmount(amountEth);
+        const value = ethers.parseEther(String(n));
+
+        let estimate; try { estimate = await presale.buy.estimateGas({ value }); } catch {}
+        try {
+          const fee = await provider.getFeeData();
+          const tx = await presale.buy({
+            value,
+            maxFeePerGas: fee.maxFeePerGas ?? undefined,
+            maxPriorityFeePerGas: fee.maxPriorityFeePerGas ?? undefined,
+            gasLimit: estimate ?? undefined
+          });
+          toast.info('Submitting… confirm in your wallet');
+          const rcpt = await tx.wait(); toast.ok('Transaction confirmed');
+          if (typeof window.EXWIFE_refreshRaised === 'function') { try { await window.EXWIFE_refreshRaised(); } catch {} }
+          return rcpt;
+        } catch (e) {
+          const msg = e?.message || String(e);
+          // Auto-fallback if RPC doesn’t support 1559 priority fee
+          if (/eth_maxPriorityFeePerGas|-32601/.test(msg)) {
+            let gasPrice; try { const fd = await provider.getFeeData(); gasPrice = fd.gasPrice || await provider.send('eth_gasPrice',[]);} catch {}
+            const tx = await presale.buy({ value, type:0, gasPrice: gasPrice ?? undefined, gasLimit: estimate ?? undefined });
+            toast.info('Submitting… confirm in your wallet');
+            const rcpt = await tx.wait(); toast.ok('Transaction confirmed');
+            if (typeof window.EXWIFE_refreshRaised === 'function') { try { await window.EXWIFE_refreshRaised(); } catch {} }
+            return rcpt;
+          }
+          toast.err('Buy error: ' + msg); throw e;
+        }
+      };
+      window.handleBuy.__gate10_wc__ = true;
+    })();
+
+    // 6) Wire Buy handler (clean states)
+    const onTap = async () => {
+      if (!gate()) { (window.toast?.err || console.error)('Enter ≥ 0.001 ETH.'); return; }
+      try {
+        await ensureProvider(); // ensures injected or WC
+      } catch (e) { (window.toast?.err || console.error)('Connect a wallet first.'); return; }
+      const n = parseFloat(readAmt() ?? 'NaN'); if (!Number.isFinite(n)) { (window.toast?.err || console.error)('Enter a valid amount.'); return; }
+      const hb = (typeof window.handleBuy === 'function') ? window.handleBuy : null;
+      if (!hb) { (window.toast?.err || console.error)('Buy not ready. Try again.'); return; }
+      const orig = buy.textContent; buy.textContent='Buying…'; buy.disabled=true;
+      try { await hb(n); } catch (e) { /* surfaced via toast */ }
+      finally { buy.textContent=orig; gate(); }
+    };
+
+    // Detach unknown listeners and rebind our own (avoid event-as-amount bugs)
+    buy.removeAttribute('onclick'); try { buy.onclick=null; } catch {}
+    ['click','touchend','pointerup'].forEach(t => { buy.addEventListener(t, onTap, {capture:false}); });
+
+    // Connect button explicitly opens the WC flow if needed
+    connect.addEventListener('click', async ()=>{
+      try { await ensureProvider(); (window.toast?.ok||console.log)('Wallet connected'); }
+      catch (e){ (window.toast?.err||console.error)(e?.message||String(e)); }
+    });
+
+    buy.title = 'gate10-inline-amount v5';
+  } catch (e) { console.error('[Gate10] init failed:', e); }
+})();
+
+</script>
 
 <script id="wc-lazy-connect">
 (() => {
@@ -904,427 +1046,6 @@
 })();
 </script>
 <!-- /EXWIFE hardening -->
-<!-- EXWIFE Runtime Scrubber: remove leaked inline code if present -->
-<script>
-(() => {
-  const signatures = [
-    "const signer = await provider.getSigner()",
-    "const presale = new ethers.Contract",
-    "buy() failed:",
-    "EXWIFE v12.3 loaded",
-    "Paused pill updater"
-  ];
-
-  function looksLikeLeak(el) {
-    if (!el) return false;
-    const t = (el.innerText || el.textContent || "").trim();
-    if (t.length < 40) return false;
-    return signatures.some(sig => t.includes(sig));
-  }
-
-  function scrub() {
-    // Try common containers for debug/code leaks
-    const candidates = Array.from(document.querySelectorAll(
-      "pre, code, .footer, footer, .debug, #debug, .notes, .bottom, body > div:last-child, body > pre:last-child, body > code:last-child"
-    ));
-    // Also include any element at the bottom of the page
-    const bodyChildren = Array.from(document.body.children);
-    candidates.push(bodyChildren[bodyChildren.length-1]);
-
-    let removed = 0;
-    candidates.forEach(el => {
-      if (!el) return;
-      if (looksLikeLeak(el)) {
-        el.style.display = "none"; // hide first (quick)
-        el.remove?.();             // then remove if possible
-        removed++;
-      }
-    });
-    // As a final pass, search all <pre> everywhere (safeguard)
-    document.querySelectorAll("pre, code").forEach(el => {
-      if (looksLikeLeak(el)) { el.style.display = "none"; el.remove?.(); removed++; }
-    });
-    return removed;
-  }
-
-  // Run at DOM ready and again after a short delay (for late renders)
-  const run = () => { scrub(); setTimeout(scrub, 600); setTimeout(scrub, 2000); };
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", run, { once: true });
-  } else {
-    run();
-  }
-
-  // Observe future DOM changes (e.g., React re-renders)
-  const mo = new MutationObserver(() => scrub());
-  mo.observe(document.documentElement, { childList: true, subtree: true });
-})();
-</script>
-<!-- EXWIFE Runtime Scrubber v2: remove leaked inline code reliably -->
-<script>
-(() => {
-  // Phrases that should never be visible on the page
-  const SIGNATURES = [
-    "const signer = await provider.getSigner()",
-    "const presale = new ethers.Contract",
-    "buy() failed:",
-    "PRESALE_ABI_MIN",
-    "updatePausedPill()",
-    "EXWIFE v12.3 loaded"
-  ];
-
-  // If you want logs, flip to true in console: window.__EXWIFE_DEBUG_SCRUB = true
-  const D = () => !!window.__EXWIFE_DEBUG_SCRUB;
-
-  // Walk all text nodes and nuke containers that contain a signature
-  function scrubTextNodes(root=document.body) {
-    if (!root) return 0;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        const t = (node.nodeValue || "").trim();
-        if (t.length < 20) return NodeFilter.FILTER_SKIP;
-        return SIGNATURES.some(sig => t.includes(sig))
-          ? NodeFilter.FILTER_ACCEPT
-          : NodeFilter.FILTER_SKIP;
-      }
-    });
-    let removed = 0;
-    const toRemove = new Set();
-
-    while (walker.nextNode()) {
-      const textNode = walker.currentNode;
-      let el = textNode.parentElement;
-      // climb up to a reasonably sized block (avoid removing the whole body)
-      let hops = 0;
-      while (el && el !== document.body && hops < 6) {
-        const cs = getComputedStyle(el);
-        const isBlocky = ["block","flex","grid","table","list-item"].includes(cs.display) || el.tagName.match(/^(DIV|SECTION|FOOTER|MAIN|ASIDE|P|PRE|CODE)$/);
-        const bigEnough = (el.offsetWidth >= 200 || el.offsetHeight >= 30);
-        if (isBlocky && bigEnough) break;
-        el = el.parentElement; hops++;
-      }
-      if (el && el !== document.body) toRemove.add(el);
-    }
-
-    toRemove.forEach(el => {
-      if (D()) console.warn("[EXWIFE scrub] removing leak container:", el);
-      el.style.display = "none";
-      el.remove?.();
-      removed++;
-    });
-    return removed;
-  }
-
-  // One-shot scans + mutation observer to catch future injections
-  function runScrub() {
-    let n = 0;
-    try { n += scrubTextNodes(); } catch {}
-    // also try specific “last child” containers, common for footers
-    try {
-      const last = document.body && document.body.lastElementChild;
-      if (last) n += scrubTextNodes(last);
-    } catch {}
-
-    if (D()) console.log("[EXWIFE scrub] pass removed =", n);
-    return n;
-  }
-
-  // Initial passes
-  const start = () => {
-    runScrub();
-    setTimeout(runScrub, 300);
-    setTimeout(runScrub, 1500);
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
-  }
-
-  // Observe future DOM changes
-  const mo = new MutationObserver(() => runScrub());
-  mo.observe(document.documentElement, { childList: true, subtree: true });
-
-  // Expose a manual re-scrub
-  window.EXWIFE_scrubNow = runScrub;
-})();
-</script>
-<!-- EXWIFE Runtime Scrubber v3: deep (DOM + shadow DOM) -->
-<script>
-(() => {
-  // Flip on verbose logs with: window.__EXWIFE_DEBUG_SCRUB = true
-  const DEBUG = () => !!window.__EXWIFE_DEBUG_SCRUB;
-
-  // Phrases that should NEVER be visible
-  const SIGS = [
-    "const signer = await provider.getSigner()",
-    "const presale = new ethers.Contract",
-    "PRESALE_ABI_MIN",
-    "buy() failed:",
-    "setStatus('✅ Confirmed')",
-    "EXWIFE v12.3 loaded"
-  ];
-
-  // Helper to iterate all nodes including shadow roots
-  function* deepNodes(root) {
-    const stack = [root];
-    while (stack.length) {
-      const n = stack.pop();
-      yield n;
-      // Shadow root
-      if (n.shadowRoot) stack.push(n.shadowRoot);
-      // Light DOM
-      if (n.childNodes) {
-        for (let i = n.childNodes.length - 1; i >= 0; i--) {
-          stack.push(n.childNodes[i]);
-        }
-      }
-      // If this is a DocumentFragment (e.g., shadowRoot), still iterate children via childNodes above
-    }
-  }
-
-  function looksLikeLeakText(t) {
-    if (!t) return false;
-    const s = t.trim();
-    if (s.length < 20) return false;
-    return SIGS.some(sig => s.includes(sig));
-  }
-
-  // Find the nearest sensible container to remove
-  function nearestContainer(el) {
-    let hops = 0;
-    while (el && el !== document.body && hops < 8) {
-      const tag = el.tagName ? el.tagName.toLowerCase() : "";
-      if (["pre","code","footer","div","section","aside","main","p"].includes(tag)) return el;
-      el = el.parentElement || el.host || el.parentNode;
-      hops++;
-    }
-    return null;
-  }
-
-  function scrubOnce(root = document.body) {
-    if (!root) return 0;
-    const toRemove = new Set();
-
-    for (const n of deepNodes(root)) {
-      // Text node?
-      if (n.nodeType === 3) {
-        if (looksLikeLeakText(n.nodeValue)) {
-          let el = n.parentElement || (n.getRootNode && n.getRootNode().host) || null;
-          const container = nearestContainer(el) || el;
-          if (container && container !== document.body) toRemove.add(container);
-        }
-      }
-      // Elements that might dump text
-      else if (n.nodeType === 1) {
-        const el = n;
-        // Skip if not connected or hidden
-        if (!el.isConnected) continue;
-        const text = (el.innerText || el.textContent || "");
-        if (looksLikeLeakText(text)) {
-          const container = nearestContainer(el) || el;
-          if (container && container !== document.body) toRemove.add(container);
-        }
-      }
-    }
-
-    let removed = 0;
-    toRemove.forEach(el => {
-      if (DEBUG()) console.warn("[EXWIFE scrub v3] removing leak container:", el);
-      // Try to hide immediately, then remove
-      el.style.display = "none";
-      try { el.remove(); } catch {}
-      removed++;
-    });
-    return removed;
-  }
-
-  // Run now, again soon, and on every repaint for a short time
-  function runPasses() {
-    let passes = 0;
-    const maxPasses = 20; // ~2 seconds of rAF at 60fps
-    function tick() {
-      scrubOnce();
-      if (++passes < maxPasses) requestAnimationFrame(tick);
-    }
-    scrubOnce();
-    setTimeout(() => scrubOnce(), 300);
-    setTimeout(() => scrubOnce(), 1500);
-    requestAnimationFrame(tick);
-  }
-
-  // Observe DOM + shadow DOM changes
-  let mo;
-  function startObserver() {
-    try {
-      mo = new MutationObserver(() => scrubOnce());
-      mo.observe(document.documentElement, { childList: true, subtree: true });
-    } catch {}
-  }
-
-  // Public hook to re-scrub on demand
-  window.EXWIFE_scrubNow = () => scrubOnce();
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => { runPasses(); startObserver(); }, { once:true });
-  } else {
-    runPasses(); startObserver();
-  }
-})();
-</script>
-<!-- EXWIFE Runtime Scrubber v4: blank matching text nodes (even under <body>) -->
-<script>
-(() => {
-  // Flip on logs via: window.__EXWIFE_DEBUG_SCRUB = true
-  const DEBUG = () => !!window.__EXWIFE_DEBUG_SCRUB;
-
-  const SIGS = [
-    "const signer = await provider.getSigner()",
-    "const presale = new ethers.Contract",
-    "PRESALE_ABI_MIN",
-    "buy() failed:",
-    "setStatus('✅ Confirmed')",
-    "EXWIFE v12.3 loaded"
-  ];
-
-  function looksLikeLeakText(t) {
-    if (!t) return false;
-    const s = t.trim();
-    if (s.length < 20) return false;
-    return SIGS.some(sig => s.includes(sig));
-  }
-
-  function* deepNodes(root) {
-    const stack = [root];
-    while (stack.length) {
-      const n = stack.pop();
-      yield n;
-      if (n.shadowRoot) stack.push(n.shadowRoot);
-      if (n.childNodes) {
-        for (let i = n.childNodes.length - 1; i >= 0; i--) stack.push(n.childNodes[i]);
-      }
-    }
-  }
-
-  function scrubOnce(root = document.documentElement) {
-    let blanks = 0;
-    for (const n of deepNodes(root)) {
-      if (n.nodeType === 3) { // TEXT_NODE
-        if (looksLikeLeakText(n.nodeValue)) {
-          if (DEBUG()) console.warn("[EXWIFE scrub v4] blanking text node:", n.nodeValue.slice(0,120), "…");
-          n.nodeValue = ""; // BLANK the offending text
-          blanks++;
-        }
-      } else if (n.nodeType === 1) { // ELEMENT_NODE quick path for <pre>/<code>
-        const tag = n.tagName ? n.tagName.toLowerCase() : "";
-        if (tag === "pre" || tag === "code") {
-          const txt = n.innerText || n.textContent || "";
-          if (looksLikeLeakText(txt)) {
-            if (DEBUG()) console.warn("[EXWIFE scrub v4] removing block element:", n);
-            n.style.display = "none";
-            n.remove?.();
-            blanks++;
-          }
-        }
-      }
-    }
-    return blanks;
-  }
-
-  function start() {
-    scrubOnce();
-    setTimeout(scrubOnce, 200);
-    setTimeout(scrubOnce, 1000);
-
-    // Keep watching for re-injections
-    try {
-      const mo = new MutationObserver(() => scrubOnce());
-      mo.observe(document.documentElement, { childList: true, characterData: true, subtree: true });
-    } catch {}
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
-  }
-
-  // Manual trigger
-  window.EXWIFE_scrubNow = () => scrubOnce();
-})();
-</script>
-<!-- EXWIFE TextNode Eliminator v5: kill bare code text under <body> -->
-<script>
-(() => {
-  const PHRASES = [
-    "const signer = await provider.getSigner()",
-    "const presale = new ethers.Contract",
-    "PRESALE_ABI_MIN",
-    "showToast('Buy submitted!'",
-    "await window.EXWIFE_refreshRaised()"
-  ];
-  const matches = (t) => {
-    if (!t) return false;
-    const s = t.trim();
-    if (s.length < 20) return false;
-    for (const p of PHRASES) if (s.includes(p)) return true;
-    return false;
-  };
-
-  function killBodyTextNodes() {
-    if (!document.body) return 0;
-    let nuke = 0;
-    for (const n of Array.from(document.body.childNodes)) {
-      if (n.nodeType === 3 && matches(n.nodeValue)) { // TEXT_NODE directly under <body>
-        n.nodeValue = "";
-        nuke++;
-      }
-    }
-    return nuke;
-  }
-
-  // Observe for future injections (childList and characterData)
-  function startObserver() {
-    if (!document.body) return;
-    const mo = new MutationObserver((muts) => {
-      for (const m of muts) {
-        if (m.type === "childList") {
-          for (const n of m.addedNodes) {
-            if (n.nodeType === 3 && matches(n.nodeValue)) n.nodeValue = "";
-          }
-        } else if (m.type === "characterData") {
-          const n = m.target;
-          if (n.nodeType === 3 && matches(n.nodeValue)) n.nodeValue = "";
-        }
-      }
-      killBodyTextNodes();
-    });
-    mo.observe(document.body, { childList: true, characterData: true, subtree: true });
-  }
-
-  function boot() {
-    killBodyTextNodes();
-    // a few early passes to catch late paints
-    setTimeout(killBodyTextNodes, 50);
-    setTimeout(killBodyTextNodes, 200);
-    setTimeout(killBodyTextNodes, 1000);
-    // keep scanning briefly via rAF
-    let c = 0; const max = 240; // ~4s @60fps
-    (function tick(){ killBodyTextNodes(); if (++c < max) requestAnimationFrame(tick); })();
-    startObserver();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot, { once: true });
-  } else {
-    boot();
-  }
-
-  // Manual trigger if needed
-  window.EXWIFE_scrubNow = killBodyTextNodes;
-})();
-</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
