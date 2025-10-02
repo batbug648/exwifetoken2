@@ -847,6 +847,86 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
 })();
 </script>
 <!-- END GATE10_MOBILE_CONNECT_BUY -->
+<!-- UNIVERSAL CONNECT/BUY BINDER -->
+<script>
+(() => {
+  // normalize text content for matching
+  const norm = (el) => (el.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+  // is this element a button-ish control?
+  const isButtonish = (el) => {
+    if (!el) return false;
+    const tag = (el.tagName || "").toLowerCase();
+    const role = (el.getAttribute && (el.getAttribute("role")||"").toLowerCase()) || "";
+    return tag === "button" || role === "button" || el.matches?.("a, [data-buy], [data-connect], [data-action]");
+  };
+
+  // try to wire a single element if its text matches
+  function tryWire(el) {
+    if (!isButtonish(el)) return false;
+    const t = norm(el);
+    // CONNECT matchers
+    if (/(^|\s)(connect wallet|connect)(\s|$)/.test(t)) {
+      if (!el.__exwife_connect) {
+        el.addEventListener("click", (e) => { e.preventDefault?.(); window.EXWIFE_connect?.(); }, { passive: true });
+        el.addEventListener("touchend", (e) => { e.preventDefault?.(); window.EXWIFE_connect?.(); }, { passive: true });
+        el.__exwife_connect = true;
+      }
+      return true;
+    }
+    // BUY matchers
+    if (/^buy(\s|$)/.test(t) || /(\s|^)buy now(\s|$)/.test(t)) {
+      if (!el.__exwife_buy) {
+        el.addEventListener("click", (e) => { e.preventDefault?.(); window.EXWIFE_buyInline?.(); }, { passive: true });
+        el.addEventListener("touchend", (e) => { e.preventDefault?.(); window.EXWIFE_buyInline?.(); }, { passive: true });
+        el.__exwife_buy = true;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // initial sweep
+  function sweep() {
+    document.querySelectorAll("button, a, [role='button'], [data-buy], [data-connect], [data-action]").forEach(tryWire);
+  }
+
+  // observe future DOM changes (e.g., React re-renders)
+  const mo = new MutationObserver((muts) => {
+    for (const m of muts) {
+      m.addedNodes?.forEach((n) => {
+        if (n.nodeType !== 1) return; // element
+        if (tryWire(n)) return;
+        n.querySelectorAll?.("button, a, [role='button'], [data-buy], [data-connect], [data-action]").forEach(tryWire);
+      });
+    }
+  });
+
+  // start once DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => { sweep(); mo.observe(document.body, { childList: true, subtree: true }); });
+  } else {
+    sweep();
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // fallback: if no amount input exists, create a minimal hidden one so Buy has a value
+  setTimeout(() => {
+    const amt = document.getElementById("amount") || document.getElementById("gate10Amt");
+    if (!amt) {
+      const i = document.createElement("input");
+      i.type = "text";
+      i.id = "amount";
+      i.inputMode = "decimal";
+      i.placeholder = "0.001";
+      i.value = "0.001";
+      i.style.cssText = "position:fixed;left:-9999px;top:-9999px;opacity:0;"; // offscreen
+      document.body.appendChild(i);
+    }
+  }, 500);
+})();
+</script>
+<!-- /UNIVERSAL CONNECT/BUY BINDER -->
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
