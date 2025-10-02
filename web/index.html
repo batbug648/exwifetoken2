@@ -1000,6 +1000,87 @@
   }
 })();
 </script>
+<!-- EXWIFE Runtime Scrubber v4: blank matching text nodes (even under <body>) -->
+<script>
+(() => {
+  // Flip on logs via: window.__EXWIFE_DEBUG_SCRUB = true
+  const DEBUG = () => !!window.__EXWIFE_DEBUG_SCRUB;
+
+  const SIGS = [
+    "const signer = await provider.getSigner()",
+    "const presale = new ethers.Contract",
+    "PRESALE_ABI_MIN",
+    "buy() failed:",
+    "setStatus('✅ Confirmed')",
+    "EXWIFE v12.3 loaded"
+  ];
+
+  function looksLikeLeakText(t) {
+    if (!t) return false;
+    const s = t.trim();
+    if (s.length < 20) return false;
+    return SIGS.some(sig => s.includes(sig));
+  }
+
+  function* deepNodes(root) {
+    const stack = [root];
+    while (stack.length) {
+      const n = stack.pop();
+      yield n;
+      if (n.shadowRoot) stack.push(n.shadowRoot);
+      if (n.childNodes) {
+        for (let i = n.childNodes.length - 1; i >= 0; i--) stack.push(n.childNodes[i]);
+      }
+    }
+  }
+
+  function scrubOnce(root = document.documentElement) {
+    let blanks = 0;
+    for (const n of deepNodes(root)) {
+      if (n.nodeType === 3) { // TEXT_NODE
+        if (looksLikeLeakText(n.nodeValue)) {
+          if (DEBUG()) console.warn("[EXWIFE scrub v4] blanking text node:", n.nodeValue.slice(0,120), "…");
+          n.nodeValue = ""; // BLANK the offending text
+          blanks++;
+        }
+      } else if (n.nodeType === 1) { // ELEMENT_NODE quick path for <pre>/<code>
+        const tag = n.tagName ? n.tagName.toLowerCase() : "";
+        if (tag === "pre" || tag === "code") {
+          const txt = n.innerText || n.textContent || "";
+          if (looksLikeLeakText(txt)) {
+            if (DEBUG()) console.warn("[EXWIFE scrub v4] removing block element:", n);
+            n.style.display = "none";
+            n.remove?.();
+            blanks++;
+          }
+        }
+      }
+    }
+    return blanks;
+  }
+
+  function start() {
+    scrubOnce();
+    setTimeout(scrubOnce, 200);
+    setTimeout(scrubOnce, 1000);
+
+    // Keep watching for re-injections
+    try {
+      const mo = new MutationObserver(() => scrubOnce());
+      mo.observe(document.documentElement, { childList: true, characterData: true, subtree: true });
+    } catch {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+
+  // Manual trigger
+  window.EXWIFE_scrubNow = () => scrubOnce();
+})();
+</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
