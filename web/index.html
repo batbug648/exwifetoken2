@@ -996,6 +996,84 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
   }
 })();
 </script>
+<!-- EXWIFE: Buy/Connect hardening (amt clean + min guard + button lock) -->
+<script>
+(() => {
+  const MIN_ETH = 0.001;
+
+  // 1) Pre-fill amount from ?amt= and then clean it from the URL
+  (function prefillAndCleanAmt(){
+    try {
+      const u = new URL(location.href);
+      const qAmt = u.searchParams.get("amt");
+      if (qAmt) {
+        const i = document.getElementById("amount") || document.getElementById("gate10Amt");
+        if (i && !i.value) i.value = qAmt;
+        u.searchParams.delete("amt");
+        history.replaceState({}, "", u.pathname + (u.search || "") + u.hash);
+      }
+    } catch(_) {}
+  })();
+
+  // helper: get buy button & amount input
+  function getBuyBtn() {
+    return document.getElementById("buyBtn")
+        || document.getElementById("gate10Buy")
+        || document.querySelector("[data-buy]")
+        || document.querySelector("button, a, [role='button']");
+  }
+  function getAmtInput() {
+    return document.getElementById("amount") || document.getElementById("gate10Amt");
+  }
+
+  // Compose wrappers around the original buy function
+  function whenReady(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn, { once:true });
+    } else {
+      fn();
+    }
+  }
+
+  whenReady(() => {
+    // Wait until EXWIFE_buyInline exists; retry a few times if needed
+    let tries = 0, maxTries = 10;
+    const tick = setInterval(() => {
+      const origBuy = window.EXWIFE_buyInline;
+      if (typeof origBuy === "function" || ++tries >= maxTries) {
+        clearInterval(tick);
+        if (typeof origBuy !== "function") return; // nothing to wrap
+
+        // (3) Min amount guard
+        const withMinGuard = async function() {
+          const i = getAmtInput();
+          const v = i && parseFloat(i.value);
+          if (!v || isNaN(v) || v < MIN_ETH) {
+            (window.toast?.error || window.toast?.err || console.error)(`Min ${MIN_ETH} ETH`);
+            return;
+          }
+          return await origBuy.apply(this, arguments);
+        };
+
+        // (2) Button lock (avoid double submits)
+        const withLock = async function() {
+          const btn = getBuyBtn();
+          if (btn && btn.disabled) return;
+          if (btn) { btn.disabled = true; btn.dataset.loading = "1"; }
+          try {
+            return await withMinGuard.apply(this, arguments);
+          } finally {
+            if (btn) { btn.disabled = false; delete btn.dataset.loading; }
+          }
+        };
+
+        window.EXWIFE_buyInline = withLock;
+      }
+    }, 150);
+  });
+})();
+</script>
+<!-- /EXWIFE hardening -->
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
