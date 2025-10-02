@@ -1046,6 +1046,79 @@ el('scanLink') && (el('scanLink').href = `https://etherscan.io/address/${addr}`)
 })();
 </script>
 <!-- /EXWIFE hardening -->
+<!-- EXWIFE Tail Cleaner: remove leaked code only from the bottom of <body> -->
+<script>
+(() => {
+  const PHRASES = [
+    "provider.getSigner",
+    "new ethers.Contract(",
+    "presale.buy({ value:",
+    "PRESALE_ABI_MIN",
+    "PRESALE_ADDRESS",
+    "Buy submitted!",
+    "✅ Confirmed"
+  ];
+  const isLeak = (t) => !!t && t.length > 20 && PHRASES.some(p => t.includes(p));
+  const isEssential = (el) => {
+    if (!el || el === document.body) return true;
+    if (el.id && /^(app|__next|root)$/i.test(el.id)) return true;
+    const tag = (el.tagName || "").toLowerCase();
+    if (/^(main|header|nav|footer)$/.test(tag)) return true;
+    if (tag === "script" && el.src) return true; // keep external scripts
+    return false;
+  };
+
+  function cleanTail() {
+    if (!document.body) return 0;
+    let removed = 0;
+
+    // 1) Blank trailing TEXT NODES with the phrases
+    const kids = Array.from(document.body.childNodes);
+    for (let i = kids.length - 1; i >= Math.max(0, kids.length - 8); i--) {
+      const n = kids[i];
+      if (!n) continue;
+      if (n.nodeType === 3) { // text node
+        const val = n.nodeValue || "";
+        if (isLeak(val)) { n.nodeValue = ""; removed++; }
+      }
+    }
+
+    // 2) Remove last few ELEMENTs if their text contains the phrases and they aren't essential
+    const els = Array.from(document.body.children);
+    for (let i = els.length - 1; i >= Math.max(0, els.length - 8); i--) {
+      const el = els[i];
+      if (!el || isEssential(el)) continue;
+      const txt = (el.innerText || el.textContent || "");
+      if (isLeak(txt)) {
+        try { el.remove(); } catch { el.style.display = "none"; }
+        removed++;
+      }
+    }
+    return removed;
+  }
+
+  function boot() {
+    cleanTail();
+    setTimeout(cleanTail, 50);
+    setTimeout(cleanTail, 200);
+    setTimeout(cleanTail, 1000);
+    // Light observer: watch only direct tail changes
+    try {
+      const mo = new MutationObserver(() => cleanTail());
+      mo.observe(document.body, { childList: true, characterData: true });
+    } catch {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+
+  // Manual trigger
+  window.EXWIFE_scrubNow = () => cleanTail();
+})();
+</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
