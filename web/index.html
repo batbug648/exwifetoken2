@@ -213,6 +213,65 @@
 
 </head>
 <body>
+<!-- EXWIFE bad-script killer: remove any <script> containing legacy buy code -->
+<script>
+(() => {
+  const SIGS = [
+    "provider.getSigner",
+    "new ethers.Contract(",
+    "presale.buy({ value:",
+    "PRESALE_ADDRESS",
+    "PRESALE_ABI_MIN",
+    "Buy submitted!",
+    "✅ Confirmed"
+  ];
+  const looksBad = t => !!t && t.length > 40 && SIGS.some(s => t.includes(s));
+
+  function killScripts(root=document) {
+    let removed = 0;
+    root.querySelectorAll?.("script").forEach(s => {
+      const txt = s.textContent || "";
+      if (looksBad(txt)) { try { s.remove(); removed++; } catch {} }
+    });
+    return removed;
+  }
+
+  function boot() {
+    // Early passes
+    killScripts(document);
+    setTimeout(() => killScripts(document), 10);
+    setTimeout(() => killScripts(document), 50);
+    setTimeout(() => killScripts(document), 200);
+    setTimeout(() => killScripts(document), 1000);
+
+    // Keep watching for future injections
+    try {
+      const mo = new MutationObserver(muts => {
+        for (const m of muts) {
+          m.addedNodes && m.addedNodes.forEach(n => {
+            if (n.nodeType === 1) {
+              if (n.tagName === "SCRIPT") {
+                const txt = n.textContent || "";
+                if (looksBad(txt)) { try { n.remove(); } catch {} }
+              } else {
+                // scan any scripts under this subtree
+                killScripts(n);
+              }
+            }
+          });
+        }
+      });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch {}
+  }
+
+  if (document.readyState === "loading") {
+    const i = setInterval(() => { if (document.body) { clearInterval(i); boot(); } }, 5);
+  } else {
+    boot();
+  }
+})();
+</script>
 
   <!-- Hero -->
   <header style="max-width:980px;margin:24px auto 6px;padding:0 12px;text-align:center">
