@@ -1081,6 +1081,77 @@
   window.EXWIFE_scrubNow = () => scrubOnce();
 })();
 </script>
+<!-- EXWIFE TextNode Eliminator v5: kill bare code text under <body> -->
+<script>
+(() => {
+  const PHRASES = [
+    "const signer = await provider.getSigner()",
+    "const presale = new ethers.Contract",
+    "PRESALE_ABI_MIN",
+    "showToast('Buy submitted!'",
+    "await window.EXWIFE_refreshRaised()"
+  ];
+  const matches = (t) => {
+    if (!t) return false;
+    const s = t.trim();
+    if (s.length < 20) return false;
+    for (const p of PHRASES) if (s.includes(p)) return true;
+    return false;
+  };
+
+  function killBodyTextNodes() {
+    if (!document.body) return 0;
+    let nuke = 0;
+    for (const n of Array.from(document.body.childNodes)) {
+      if (n.nodeType === 3 && matches(n.nodeValue)) { // TEXT_NODE directly under <body>
+        n.nodeValue = "";
+        nuke++;
+      }
+    }
+    return nuke;
+  }
+
+  // Observe for future injections (childList and characterData)
+  function startObserver() {
+    if (!document.body) return;
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.type === "childList") {
+          for (const n of m.addedNodes) {
+            if (n.nodeType === 3 && matches(n.nodeValue)) n.nodeValue = "";
+          }
+        } else if (m.type === "characterData") {
+          const n = m.target;
+          if (n.nodeType === 3 && matches(n.nodeValue)) n.nodeValue = "";
+        }
+      }
+      killBodyTextNodes();
+    });
+    mo.observe(document.body, { childList: true, characterData: true, subtree: true });
+  }
+
+  function boot() {
+    killBodyTextNodes();
+    // a few early passes to catch late paints
+    setTimeout(killBodyTextNodes, 50);
+    setTimeout(killBodyTextNodes, 200);
+    setTimeout(killBodyTextNodes, 1000);
+    // keep scanning briefly via rAF
+    let c = 0; const max = 240; // ~4s @60fps
+    (function tick(){ killBodyTextNodes(); if (++c < max) requestAnimationFrame(tick); })();
+    startObserver();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+
+  // Manual trigger if needed
+  window.EXWIFE_scrubNow = killBodyTextNodes;
+})();
+</script>
 </body></body>
 </html>
 <script id="gate10-selfheal-ui-js">
