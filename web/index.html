@@ -56,6 +56,12 @@
   <title>EXWIFE — Presale (Mainnet)</title>
 
   <!-- Ethers UMD -->
+<!-- Node 'process' shim for browser -->
+<script>
+  // Some UMD bundles check process.env
+  window.global = window.global || window;
+  window.process = window.process || { env: {} };
+</script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 
   <!-- ENV -->
