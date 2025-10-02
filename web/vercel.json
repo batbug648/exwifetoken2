@@ -147,6 +147,15 @@
           "value": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://eth.drpc.org https://rpc.sepolia.org https://api.etherscan.io https://etherscan.io; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
         }
       ]
+    },
+    {
+      "source": "/(index.html)?",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline'; connect-src 'self' https://*.walletconnect.com https://rpc.walletconnect.com https://*.cdnwc.com https://*.infura.io https://eth.drpc.org wss: https:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; frame-src 'self' https:; media-src 'self' https:; font-src 'self' https: data:; base-uri 'self'; form-action 'self'"
+        }
+      ]
     }
   ]
 }
